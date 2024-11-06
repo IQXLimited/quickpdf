@@ -26,7 +26,7 @@ if ( !isDirectory ( resolve ( __dirname, "../test-assets" ) ) ) {
   mkdirSync ( resolve ( __dirname, "../test-assets" ) )
 }
 
-const pdf = "https://www.princexml.com/samples/invoice/invoicesample.pdf"
+const pdf = "https://www.orimi.com/pdf-test.pdf"
 
 pdf2img ( pdf )
 .then ( async res => {

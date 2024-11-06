@@ -1,5 +1,5 @@
 {
-  "name": "pdf-to-img",
+  "name": "quick-pdf",
   "version": "4.2.0",
   "author": "IQX",
   "description": "Converting PDFs to images (📃 to 📸)",
@@ -8,24 +8,26 @@
   "type": "module",
   "license": "MIT",
   "files": [
-    "dist/*"
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "pdf",
-    "pdfjs",
+    "jpeg",
+    "html",
     "png",
     "img",
     "pdf-to-img",
-    "pdf-to-png"
+    "pdf-to-png",
+    "pdf-to-jpeg",
+    "html-to-pdf"
   ],
   "repository": "https://github.com/IQXLimited/pdf2pic",
   "scripts": {
-    "build": "rm -rf dist && tsc --build",
+    "build": "npx tsc --build",
     "lint": "npx --yes eslint",
     "test": "npx --yes tsx ./src/test.ts"
-  },
-  "bin": {
-    "pdf-to-img": "./dist/index.js"
   },
   "engines": {
     "node": ">=22.0.0"
