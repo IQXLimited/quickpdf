@@ -34,21 +34,4 @@ export class CanvasFactory {
       context
     }
   }
-
-  /**
-   * Resets the dimensions of an existing canvas.
-   *
-   * @param canvas - The canvas to reset.
-   * @param width - The new width of the canvas in pixels.
-   * @param height - The new height of the canvas in pixels.
-   * @throws Will throw an error if width or height is non-positive.
-   */
-  public reset ( canvas: Canvas, width: number, height: number ) {
-    if ( width <= 0 || height <= 0 ) {
-      throw new Error ( "Invalid canvas size" )
-    }
-
-    canvas.width = width
-    canvas.height = height
-  }
 }

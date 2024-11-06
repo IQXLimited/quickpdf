@@ -7,6 +7,12 @@ import { getBuffer } from "../utilies.js" // Import utility function to get buff
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs" // Import PDF.js for PDF document parsing (legacy mode for Node.js)
 import { PngConfig, JpegConfig } from "canvas" // Import canvas image configuration for PNG and JPEG
 import { fileTypeFromBuffer } from "file-type" // Import to determine the file type from a buffer
+import { DocumentInitParameters } from "pdfjs-dist/types/src/display/api.js"
+import { fileURLToPath } from "url"
+import { resolve, dirname, join, sep } from "path"
+
+const __filename = fileURLToPath ( import.meta.url )
+const __dirname = dirname ( __filename )
 
 // Options type for customizing the image conversion process
 type Options = {
@@ -14,12 +20,12 @@ type Options = {
    * - defaults to `1`. If you want high-resolution images, increase this
    * @param {number} [scale] - Scaling factor for rendering the PDF pages. Default is 1.
    */
-  scale?: number 
+  scale?: number
   /**
    * - For decrypting password-protected PDFs.
    * @param {string} [password] - Optional password for decrypting password-protected PDFs.
    */
-  password?: string 
+  password?: string
   /**
    * - defaults to `image/png`
    * @param {object} [buffer] - Optional configuration for output image format and quality (PNG or JPEG).
@@ -56,15 +62,21 @@ export const pdf2img = async (
     process.exit ( 1 ) // Exit if the file is not a valid PDF
   }
 
+  // Get the path to the PDF.js package
+  const pdfjsPath = resolve ( __dirname, "..", "..", "node_modules", "pdfjs-dist" )
+
   // Set up options for rendering the PDF document
-  const newoptions: any = {
+  const newoptions: DocumentInitParameters = {
     password: options.password ?? undefined, // Set the password for encrypted PDFs if provided
+    standardFontDataUrl: join ( pdfjsPath, `standard_fonts${sep}`),
+    cMapUrl: join ( pdfjsPath, `cmaps${sep}` ),
     isEvalSupported: false, // Disable eval support
     data: Uint8Array.from ( buffer ) // Convert the buffer to a Uint8Array for PDF.js
   }
 
   // Load the PDF document
   const pdfDocument = await getDocument ( newoptions ).promise
+
   // Get the metadata of the PDF document
   const metadata = await pdfDocument.getMetadata ( )
 

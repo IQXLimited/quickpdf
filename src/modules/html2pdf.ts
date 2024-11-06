@@ -15,7 +15,8 @@ import { fetchHtmlFromUrl, readHtmlFromFilePath } from "src/utilies" // Import c
  * @throws {Promise<Error>} If the HTML is invalid, an error is thrown with validation details.
  */
 export const html2pdf = async (
-  input: string | URL // HTML input as a string, URL, or file path
+  input: string | URL, // HTML input as a string, URL, or file path
+  base64?: boolean // Optional flag to return the PDF as a base64 string
 ) => {
   const validator = new HtmlValidate () // Initialize HTML validator
 
@@ -37,6 +38,9 @@ export const html2pdf = async (
       await page.setContent ( htmlContent, { waitUntil: "load" } ) // Set HTML content on the page and wait for it to load
       const pdfBuffer = await page.pdf ( { format: "A4", printBackground: true } ) // Generate PDF from the page content
       await browser.close () // Close the browser instance
+      if ( base64 ) {
+        return pdfBuffer.toString ( "base64" ) // Return the generated PDF as a base64 string
+      }
       return pdfBuffer // Return the generated PDF as a buffer
     } else {
       // If HTML is invalid, throw a validation error with details
