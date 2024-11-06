@@ -1,0 +1,54 @@
+{
+  "name": "pdf-to-img",
+  "version": "4.2.0",
+  "author": "IQX",
+  "description": "Converting PDFs to images (📃 to 📸)",
+  "exports": "./dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "license": "MIT",
+  "files": [
+    "dist/*"
+  ],
+  "keywords": [
+    "pdf",
+    "pdfjs",
+    "png",
+    "img",
+    "pdf-to-img",
+    "pdf-to-png"
+  ],
+  "repository": "https://github.com/IQXLimited/pdf2pic",
+  "scripts": {
+    "build": "rm -rf dist && tsc --build",
+    "lint": "npx --yes eslint",
+    "test": "npx --yes tsx ./src/test.ts"
+  },
+  "bin": {
+    "pdf-to-img": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "engineStrict": true,
+  "dependencies": {
+    "file-type": "^19.6.0",
+    "html-validate": "^8.24.2",
+    "image-size": "^1.1.1",
+    "pdfjs-dist": "^4.8.69",
+    "pdfkit": "^0.15.1",
+    "playwright": "^1.48.2",
+    "semver": "^7.6.3",
+    "skia-canvas": "^1.0.2"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^2.10.1",
+    "@types/node": "^22.9.0",
+    "@types/pdfjs-dist": "2.10.377",
+    "@types/pdfkit": "^0.13.5",
+    "@types/semver": "^7.5.8",
+    "eslint": "^9.14.0",
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^8.13.0"
+  }
+}
