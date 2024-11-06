@@ -58,9 +58,9 @@ pdf2img ( pdf )
   console.error ( e )
   process.exit ( 1 )
 } )
-// .finally ( ( ) => {
-//   rm ( resolve ( __dirname, "./test-assets" ), {
-//     force: true,
-//     recursive: true
-//   } )
-// } )
+.finally ( ( ) => {
+  rm ( resolve ( __dirname, "./test-assets" ), {
+    force: true,
+    recursive: true
+  } )
+} )
