@@ -70,4 +70,4 @@ pdf2img(input: Buffer | string | URL, options: Options = {})
 |-----------|----------------------------------------------------------------------|--------------------------------------------------|
 | `scale`   | `number`                                                             | Scaling factor for rendering the PDF pages. Default is 1. |
 | `password`| `string`                                                             | Optional password for decrypting password-protected PDFs. |
-| `buffer`  | `{ mime: "image/png"; options: PngConfig } \| { mime: "image/jpeg"; options: JpegConfig }` | Optional configuration for output image format and quality (PNG or JPEG). |
+| `buffer`  | `{ mime: "image/png"; options: PngConfig } \| { mime: "image/jpeg"; options: JpegConfig }` | Optional configuration for output image format and quality (PNG or JPEG). These types can be found in [pdfjs-dist](https://github.com/mozilla/pdf.js) |
