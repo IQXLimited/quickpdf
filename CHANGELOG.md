@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.0.3 (2024-11-06)
+
+- Use Sharp for Clearer PNG Quality
+- Remove Canvas Warning From Logs
+
 # 1.0.2 (2024-11-06)
 
 - @types packages now added
