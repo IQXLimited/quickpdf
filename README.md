@@ -29,6 +29,7 @@ html2pdf(input: string | URL)
 |-----------|---------------|--------------------------------------------------|--------------------------------------------|
 | `input`   | `string \| URL` | The HTML content to convert to PDF.              | A file path or a URL pointing to HTML content, as either a Node URL object or a Node string. Alternativly pass an html string directly. |
 | `base64`  | `string?`      | Return a base64 encoded string instead of a buffer | Boolean                                 |
+
 ## 2. `img2pdf`
 
 ### Function Signature:
@@ -70,4 +71,4 @@ pdf2img(input: Buffer | string | URL, options: Options = {})
 |-----------|----------------------------------------------------------------------|--------------------------------------------------|
 | `scale`   | `number`                                                             | Scaling factor for rendering the PDF pages. Default is 1. |
 | `password`| `string`                                                             | Optional password for decrypting password-protected PDFs. |
-| `buffer`  | `{ mime: "image/png"; options: PngConfig } \| { mime: "image/jpeg"; options: JpegConfig }` | Optional configuration for output image format and quality (PNG or JPEG). These types can be found in [pdfjs-dist](https://github.com/mozilla/pdf.js) |
+| `mime`    | `string`                                                             | The mime type to output - "image/png" | "image/jpeg". Default is "image/png". |

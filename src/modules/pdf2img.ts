@@ -2,14 +2,24 @@
 // Date: 2024-11-06
 // File: pdf2img.ts
 
+const originalLog = console.log
+console.log = function ( message, ...args ) {
+  if ( message && message === `Warning: applyPath2DToCanvasRenderingContext: "TypeError: Cannot assign to read only property 'clip' of object '#<CanvasRenderingContext2D>'".` ) {
+    return // This warning is expected and can be ignored
+  }
+
+  // Otherwise, log the warning as usual
+  originalLog.apply ( console, [ message, ...args ] )
+}
+
 import { CanvasFactory } from "../canvas.js" // Import custom canvas factory for rendering PDFs
 import { getBuffer } from "../utilies.js" // Import utility function to get buffer from input
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs" // Import PDF.js for PDF document parsing (legacy mode for Node.js)
-import { PngConfig, JpegConfig } from "canvas" // Import canvas image configuration for PNG and JPEG
 import { fileTypeFromBuffer } from "file-type" // Import to determine the file type from a buffer
 import { DocumentInitParameters } from "pdfjs-dist/types/src/display/api.js"
 import { fileURLToPath } from "url"
 import { resolve, dirname, join, sep } from "path"
+import sharp from "sharp"
 
 const __filename = fileURLToPath ( import.meta.url )
 const __dirname = dirname ( __filename )
@@ -27,18 +37,11 @@ type Options = {
    */
   password?: string
   /**
-   * - defaults to `image/png`
-   * @param {object} [buffer] - Optional configuration for output image format and quality (PNG or JPEG).
-   * @param {string} [buffer.mime] - The MIME type of the output image (either `image/png` or `image/jpeg`).
-   * @param {PngConfig | JpegConfig} [buffer.options] - The options for the respective image type.
+   * - For converting the rendered image to a specific format.
+   * @param {"image/png" | "image/jpeg"} [mime] - Optional buffer configuration for the image format (PNG or JPEG).
    */
-  buffer?:
-    | { mime: "image/png"; options: PngConfig } // PNG configuration options
-    | { mime: "image/jpeg"; options: JpegConfig } // JPEG configuration options
+  mime?: "image/png" | "image/jpeg"
 }
-
-// Create an instance of the custom canvas factory
-const canvasFactory = new CanvasFactory ( )
 
 /**
  * Converts a PDF file into image format (PNG or JPEG).
@@ -65,12 +68,17 @@ export const pdf2img = async (
   // Get the path to the PDF.js package
   const pdfjsPath = resolve ( __dirname, "..", "..", "node_modules", "pdfjs-dist" )
 
+  // Create an instance of the custom canvas factory
+  const canvasFactory = new CanvasFactory ( )
+
   // Set up options for rendering the PDF document
   const newoptions: DocumentInitParameters = {
     password: options.password ?? undefined, // Set the password for encrypted PDFs if provided
-    standardFontDataUrl: join ( pdfjsPath, `standard_fonts${sep}` ),
-    cMapUrl: join ( pdfjsPath, `cmaps${sep}` ),
+    standardFontDataUrl: join ( pdfjsPath, `standard_fonts${sep}` ), // Path to the predefined standard fonts
+    cMapUrl: join ( pdfjsPath, `cmaps${sep}` ), // Path to the predefined character maps
     isEvalSupported: false, // Disable eval support
+    CanvasFactory: CanvasFactory, // Use the custom canvas factory for rendering
+    verbosity: 0, // Disable logging
     data: Uint8Array.from ( buffer ) // Convert the buffer to a Uint8Array for PDF.js
   }
 
@@ -78,7 +86,7 @@ export const pdf2img = async (
   const pdfDocument = await getDocument ( newoptions ).promise
 
   // Get the metadata of the PDF document
-  const metadata = await pdfDocument.getMetadata ( )
+  const metadata: any = await pdfDocument.getMetadata ( )
 
   const pages = [ ] // Array to store the rendered pages as images
   // Loop through each page in the PDF
@@ -91,7 +99,7 @@ export const pdf2img = async (
     const page = await pdfDocument.getPage ( pageNumber )
 
     // Get the viewport for the page based on the scale option
-    const viewport = page.getViewport ( { scale: options.scale ?? 1 } )
+    const viewport = page.getViewport ( { scale: options.scale ?? 300 / 72 } ) // Default scale is 300 DPI
 
     // Create the canvas for rendering the page
     const { canvas, context } = canvasFactory.create (
@@ -106,16 +114,13 @@ export const pdf2img = async (
       viewport // Set the viewport for the rendering
     } ).promise
 
-    // Convert the canvas to a buffer in the desired image format (JPEG or PNG)
-    if ( options.buffer?.mime === "image/jpeg" ) {
-      return canvas.toBuffer ( "image/jpeg", options.buffer.options ) // Return JPEG buffer
-    } else {
-      return canvas.toBuffer ( "image/png", options.buffer?.options ?? {
-        resolution: 1920, // Set resolution for PNG by default
-        compressionLevel: 0, // Set compression level to 0 (no compression)
-        filters: canvas.PNG_FILTER_NONE // No filters for the PNG
-      } ) // Return PNG buffer
-    }
+    const imageBuffer = canvas.toBuffer ( )
+
+    const processedBuffer = await sharp ( imageBuffer )
+      .toFormat ( options.mime === "image/jpeg" ? "jpeg" : "png" ) // Convert to JPEG or PNG
+      .toBuffer ( ) // Return the processed buffer
+
+    return processedBuffer // Return the rendered page buffer
   }
 
   // Return the rendered pages and metadata

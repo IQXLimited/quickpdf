@@ -1,10 +1,13 @@
-/**
- * File: canvas.ts
- * Author: IQX Limited
- * Date: 2024-11-05
- */
+// Written by IQX Limited
+// Date: 2024-11-06
+// File: canvas.ts
 
-import { Canvas } from "canvas"
+import { Canvas, CanvasRenderingContext2D } from "canvas"
+
+type Factory = {
+  canvas: Canvas | null
+  context: CanvasRenderingContext2D | null
+}
 
 export class CanvasFactory {
   /**
@@ -33,5 +36,29 @@ export class CanvasFactory {
       canvas,
       context
     }
+  }
+
+  public reset ( factory: Factory, width: number, height: number ) {
+    if ( !factory.canvas ) {
+      throw new Error ( "Canvas is not specified" )
+    }
+
+    if ( width <= 0 || height <= 0 ) {
+      throw new Error ( "Invalid canvas size" )
+    }
+
+    factory.canvas.width = width
+    factory.canvas.height = height
+  }
+
+  public destroy ( factory: Factory ) {
+    if ( !factory.canvas ) {
+      throw new Error ( "Canvas is not specified" )
+    }
+
+    factory.canvas.width = 0
+    factory.canvas.height = 0
+    factory.canvas = null
+    factory.context = null
   }
 }
