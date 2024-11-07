@@ -8,7 +8,7 @@
       "node_modules/@types"
     ],
     "resolveJsonModule": true,
-    "allowJs": true,
+    "allowJs": false,
     "outDir": "./dist",
     "removeComments": true,
     "allowSyntheticDefaultImports": true,
@@ -22,7 +22,7 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "sourceMap": true,
-    "declaration": false,
+    "declaration": true,
     "experimentalDecorators": true,
     "importHelpers": true,
     "strictNullChecks": true,
@@ -43,7 +43,7 @@
     "assets"
   ],
   "include": [
-    "**/*.ts",
+    "src/**/*.ts",
     "types/**/*.d.ts"
   ]
 }

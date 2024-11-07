@@ -5,7 +5,7 @@
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
 import { chromium } from "playwright" // Import Playwright for rendering HTML in a headless browser
-import { fetchHtmlFromUrl, readHtmlFromFilePath } from "src/utilies" // Import custom utility functions to fetch HTML from URL or file path
+import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
 
 /**
  * Converts an HTML string or URL to a PDF.

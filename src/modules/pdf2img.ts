@@ -68,7 +68,7 @@ export const pdf2img = async (
   // Set up options for rendering the PDF document
   const newoptions: DocumentInitParameters = {
     password: options.password ?? undefined, // Set the password for encrypted PDFs if provided
-    standardFontDataUrl: join ( pdfjsPath, `standard_fonts${sep}`),
+    standardFontDataUrl: join ( pdfjsPath, `standard_fonts${sep}` ),
     cMapUrl: join ( pdfjsPath, `cmaps${sep}` ),
     isEvalSupported: false, // Disable eval support
     data: Uint8Array.from ( buffer ) // Convert the buffer to a Uint8Array for PDF.js

@@ -1,10 +1,8 @@
 {
   "name": "@iqx-limited/quick-pdf",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "IQX",
   "description": "Converting PDFs to images (📃 to 📸)",
-  "exports": "./dist/index.js",
-  "types": "dist/index.d.ts",
   "type": "module",
   "license": "MIT",
   "files": [
@@ -13,6 +11,7 @@
     "LICENSE"
   ],
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "keywords": [
     "pdf",
     "jpeg",

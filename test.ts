@@ -1,7 +1,7 @@
 import { mkdirSync, statSync, writeFileSync } from "fs"
 import { rm, writeFile } from "fs/promises"
 import { dirname, resolve } from "path"
-import { html2pdf, img2pdf, pdf2img } from "src"
+import { html2pdf, img2pdf, pdf2img } from "./src"
 import { fileURLToPath } from "url"
 
 const __filename = fileURLToPath ( import.meta.url )

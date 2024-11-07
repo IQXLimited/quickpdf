@@ -5,7 +5,7 @@
 import { fileTypeFromBuffer } from "file-type" // Import to detect the file type from a buffer
 import { imageSize } from "image-size" // Import to get image dimensions
 import PDFDocument from "pdfkit" // Import PDFKit for PDF document generation
-import { getBuffer } from "src/utilies" // Import custom utility function to retrieve buffer from input
+import { getBuffer } from "../utilies.js" // Import custom utility function to retrieve buffer from input
 
 type Options = {
   /**

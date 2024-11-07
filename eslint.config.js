@@ -13,7 +13,7 @@ export default tseslint.config (
       "@stylistic": stylistic
     },
     files: [
-      "**/*.ts"
+      "src/**/*.ts"
     ],
     extends: [
       ...tseslint.configs.recommended,
