@@ -28,7 +28,7 @@ html2pdf(input: string | URL)
 | Parameter | Type          | Description                                      | Data that can be passed                    |
 |-----------|---------------|--------------------------------------------------|--------------------------------------------|
 | `input`   | `string \| URL` | The HTML content to convert to PDF.              | A file path or a URL pointing to HTML content, as either a Node URL object or a Node string. Alternativly pass an html string directly. |
-
+| `base64`  | `string?`      | Return a base64 encoded string instead of a buffer | Boolean                                 |
 ## 2. `img2pdf`
 
 ### Function Signature:

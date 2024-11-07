@@ -25,7 +25,7 @@ export const html2pdf = async (
   // Fetch HTML content from URL if input is a URL
   if ( htmlContent.startsWith ( "http://" ) || htmlContent.startsWith ( "https://" ) ) {
     htmlContent = await fetchHtmlFromUrl ( htmlContent )
-  } 
+  }
   // Read HTML content from a file if input is a file path
   else if ( existsSync ( input ) ) {
     htmlContent = await readHtmlFromFilePath ( htmlContent )
