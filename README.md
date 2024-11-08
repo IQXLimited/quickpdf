@@ -23,6 +23,30 @@ This project provides a set of utilities for converting various file formats wit
 html2pdf(input: string | URL)
 ```
 
+Validation occurs on the html string passed. The Error Object returned is:
+```typescript
+  {
+    valid: boolean,
+    count: {
+      errors: number,
+      warnings: number
+    },
+    validation: [ {
+      file: string,
+      count: {
+        errors: number,
+        warnings: number
+      },
+      messages: [ {
+        message: string,
+        line: number,
+        column: number,
+        ruleId: string
+      } ]
+    } ]
+  }
+```
+
 ### Parameters:
 
 | Parameter | Type          | Description                                      | Data that can be passed                    |
