@@ -1,5 +1,5 @@
-import { mkdirSync, statSync, writeFileSync } from "fs"
-import { rm, writeFile } from "fs/promises"
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "fs"
+import { readFile, rm, writeFile } from "fs/promises"
 import { dirname, resolve } from "path"
 import { html2pdf, img2pdf, pdf2img } from "./src"
 import { fileURLToPath } from "url"
@@ -32,26 +32,26 @@ pdf2img ( pdf )
 .then ( async res => {
   let index = 1
   for ( const page of res.pages ) {
-    writeFileSync ( resolve ( __dirname, `./test-assets/test-${index}.png` ), page )
+    writeFileSync ( resolve ( __dirname, `./test-assets/pdf-2-img-${index}.png` ), page )
     index++
   }
   console.log ( "PDF to Image Conversion Successful" )
 } )
 .then ( ( ) => {
-  return img2pdf ( resolve ( __dirname, "./test-assets/test-1.png" ), {
+  return img2pdf ( resolve ( __dirname, "./test-assets/pdf-2-img-1.png" ), {
     header: "Header",
     footer: "Footer"
   } )
 } )
 .then ( async res => {
-  writeFile ( resolve ( __dirname, `./test-assets/test-img.pdf` ), res )
+  writeFile ( resolve ( __dirname, `./test-assets/img-2-pdf.pdf` ), res )
   console.log ( "Image to PDF Conversion Successful" )
 } )
 .then ( ( ) => {
   return html2pdf ( "<h1>Hello World</h1>" )
 } )
 .then ( async res => {
-  writeFile ( resolve ( __dirname, `./test-assets/test-html.pdf` ), res )
+  writeFile ( resolve ( __dirname, `./test-assets/html-to-pdf.pdf` ), res )
   console.log ( "HTML to PDF Conversion Successful" )
 } )
 .catch ( e => {

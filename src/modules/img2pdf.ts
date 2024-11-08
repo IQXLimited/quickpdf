@@ -50,7 +50,7 @@ export const img2pdf = async (
       const landscape = imgSize.width && imgSize.height ? imgSize.width > imgSize.height : false // Determine if the image is landscape
 
       const doc = new PDFDocument ( {
-        size: [ imgSize.width!, imgSize.height! ], // Set PDF size to the image size
+        size: "a4",
         layout: landscape ? "landscape" : "portrait", // Set the layout based on image orientation
         margins: {
           top: 0,

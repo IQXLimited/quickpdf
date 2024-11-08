@@ -28,7 +28,15 @@ html2pdf(input: string | URL)
 | Parameter | Type          | Description                                      | Data that can be passed                    |
 |-----------|---------------|--------------------------------------------------|--------------------------------------------|
 | `input`   | `string \| URL` | The HTML content to convert to PDF.              | A file path or a URL pointing to HTML content, as either a Node URL object or a Node string. Alternativly pass an html string directly. |
-| `base64`  | `string?`      | Return a base64 encoded string instead of a buffer | Boolean                                 |
+| `options` | `Options`                 | Optional configuration for the PDF conversion.   | An object with optional to configure PDF |
+
+### Options Type:
+
+| Property  | Type     | Description                                      | Default |
+|-----------|----------|--------------------------------------------------|---------|
+| `base64`  | `boolean` | PDF should be returned as a base64 encoded string.      |false|
+| `rules`  | `object` | Optional custom validation rules for HTML content - see https://html-validate.org/rules/ for more details. Default is all standard rules enabled.      |''|
+| `scale` | `number` | Scale of the PDF | 1 |
 
 ## 2. `img2pdf`
 
@@ -42,14 +50,15 @@ img2pdf(input: Buffer | string | URL, options: Options = {})
 | Parameter | Type                      | Description                                      | Data that can be passed                    |
 |-----------|---------------------------|--------------------------------------------------|--------------------------------------------|
 | `input`   | `Buffer \| string \| URL` | The image content to convert to PDF.             | A Buffer, file path, or URL pointing to an image. String or URL object can be passed for an HTTP or Local Path. |
-| `options` | `Options`                 | Optional configuration for the PDF conversion.   | An object with optional headers and footers |
+| `options` | `Options`                 | Optional configuration for the PDF conversion.   | An object with optional configurations. |
 
 ### Options Type:
 
-| Property  | Type     | Description                                      |
-|-----------|----------|--------------------------------------------------|
-| `header`  | `string` | Optional header text to include in the PDF.      |
-| `footer`  | `string` | Optional footer text to include in the PDF.      |
+| Property  | Type     | Description                                      | Default |
+|-----------|----------|--------------------------------------------------|---------|
+| `header`  | `string` | Optional header text to include in the PDF.      |undefined|
+| `footer`  | `string` | Optional footer text to include in the PDF.      |undefined|
+| `fontSize` | `number` | Font Size of the header or footer | 10 |
 
 ## 3. `pdf2img`
 

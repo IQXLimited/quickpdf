@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.0.6 (2024-11-08)
+
+- Options added to HTML2PDF
+- Allow PDF from HTML to be scaled
+
+# 1.0.5 (2024-11-07)
+
+- Bug Fixes
+
+# 1.0.4 (2024-11-07)
+
+- Bug Fixes
+
 # 1.0.3 (2024-11-06)
 
 - Use Sharp for Clearer PNG Quality

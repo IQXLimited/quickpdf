@@ -1,6 +1,6 @@
 {
   "name": "@iqx-limited/quick-pdf",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "author": "IQX",
   "description": "Converting PDFs to images (📃 to 📸)",
   "type": "module",
