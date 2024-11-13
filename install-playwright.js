@@ -42,5 +42,5 @@ if ( isChromeInstalled ( ) ) {
     rmSync ( playwrightCacheDir, { recursive: true, force: true } )
   }
   console.log ( "Google Chrome is not installed. Installing Playwright browsers..." )
-  execSync ( "npx playwright install", { stdio: "inherit" } )
+  execSync ( "npx playwright install --with-deps chromium", { stdio: "inherit" } )
 }
