@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.0.8 (2024-11-13)
+
+- Pre Install Playwright Browser if Chromium Does Not Exist
+
 # 1.0.6 (2024-11-08)
 
 - Options added to HTML2PDF
