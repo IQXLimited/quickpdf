@@ -3,16 +3,33 @@ name: Publish
 jobs:
   publish:
     name: Publish
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name == 'push' && ( github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' )
     steps:
+    - name: Upgrade Node.js
+      run: |
+        export NVM_DIR="/home/almalinux/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        read node_version _ <<< $(nvm current)
+        # latest_lts_version=$(nvm ls-remote --lts | grep 'v20' | tail -1 | sed 's/.*\(v[0-9]*\.[0-9]*\.[0-9]*\).*/\1/')
+        latest_lts_version=$(nvm ls-remote --lts | tail -1 | sed 's/.*\(v[0-9]*\.[0-9]*\.[0-9]*\).*/\1/')
+
+        if [ "${node_version}" != "${latest_lts_version}" ]; then
+          if [ "$(printf '%s\n' "$node_version" "$latest_lts_version" | sort -V | head -n1)" = "$latest_lts_version" ]; then
+            echo -e "${GREEN}Downgrading Node to ${latest_lts_version}${NC}"
+            nvm install "${latest_lts_version}" --reinstall-packages-from="$(nvm current)" && nvm uninstall "${node_version}"
+          else
+            echo -e "${GREEN}Upgrading Node to ${latest_lts_version}${NC}"
+            nvm install "${latest_lts_version}" --reinstall-packages-from="$(nvm current)" && nvm uninstall "${node_version}"
+          fi
+        fi
+    - name: "Set up Node.js using nvm"
+      run: |
+        export NVM_DIR="/home/almalinux/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm use node
+        node -v
     - uses: actions/checkout@v4
-    - name: Cache node_modules
-      id: cache-modules
-      uses: actions/cache@v4
-      with:
-        path: node_modules
-        key: lts-${{ runner.OS }}-build-${{ hashFiles('package.json') }}
     - name: Build
       if: steps.cache-modules.outputs.cache-hit != 'true'
       run: npm install && npm run build
