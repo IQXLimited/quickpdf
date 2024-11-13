@@ -1,6 +1,6 @@
 {
   "name": "@iqx-limited/quick-pdf",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "author": "IQX",
   "description": "Converting PDFs to images (📃 to 📸)",
   "type": "module",
@@ -27,7 +27,8 @@
   "scripts": {
     "build": "npx tsc --build",
     "lint": "npx --yes eslint",
-    "test": "npx --yes tsx test.ts"
+    "test": "npx --yes tsx test.ts",
+    "postinstall": "node dist/install-playwright.js"
   },
   "engines": {
     "node": ">=22.0.0"
