@@ -26,8 +26,7 @@ if ( !isDirectory ( resolve ( __dirname, "./test-assets" ) ) ) {
   mkdirSync ( resolve ( __dirname, "./test-assets" ) )
 }
 
-// const pdf = "https://www.orimi.com/pdf-test.pdf"
-const pdf = resolve ( __dirname, `./test-assets/Testing.pdf` )
+const pdf = "https://www.orimi.com/pdf-test.pdf"
 
 pdf2img ( pdf )
 .then ( async res => {
@@ -59,9 +58,9 @@ pdf2img ( pdf )
   console.error ( e )
   process.exit ( 1 )
 } )
-// .finally ( ( ) => {
-//   rm ( resolve ( __dirname, "./test-assets" ), {
-//     force: true,
-//     recursive: true
-//   } )
-// } )
+.finally ( ( ) => {
+  rm ( resolve ( __dirname, "./test-assets" ), {
+    force: true,
+    recursive: true
+  } )
+} )
