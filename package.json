@@ -1,6 +1,6 @@
 {
   "name": "@iqx-limited/quick-pdf",
-  "version": "1.0.10",
+  "version": "1.0.12",
   "author": "IQX",
   "description": "Converting PDFs to images (📃 to 📸)",
   "type": "module",
@@ -25,7 +25,7 @@
   ],
   "repository": "https://github.com/IQXLimited/quickpdf",
   "scripts": {
-    "build": "npm i &&& npx tsc --build",
+    "build": "npm i && npx tsc --build",
     "lint": "npx --yes eslint",
     "test": "npx --yes tsx test.ts",
     "postinstall": "node dist/install-playwright.js"
@@ -35,8 +35,6 @@
   },
   "engineStrict": true,
   "dependencies": {
-    "@napi-rs/canvas": "^0.1.62",
-    "canvas": "^3.0.0-rc2",
     "file-type": "^19.6.0",
     "html-validate": "^8.25.0",
     "image-size": "^1.1.1",
@@ -44,11 +42,12 @@
     "pdfkit": "^0.15.1",
     "playwright": "^1.49.0",
     "semver": "^7.6.3",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "skia-canvas": "^1.0.2"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "^2.11.0",
-    "@types/node": "^22.9.0",
+    "@types/node": "^22.9.1",
     "@types/pdfjs-dist": "2.10.377",
     "@types/pdfkit": "^0.13.5",
     "@types/semver": "^7.5.8",

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.0.12 (2024-11-20)
+# 1.0.11 (2024-11-19)
+
+- Update Dependencies
+
 # 1.0.10 (2024-11-13)
 
 - Bug Fix
