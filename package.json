@@ -35,24 +35,24 @@
   },
   "engineStrict": true,
   "dependencies": {
-    "@napi-rs/canvas": "^0.1.59",
+    "@napi-rs/canvas": "^0.1.62",
     "file-type": "^19.6.0",
-    "html-validate": "^8.24.2",
+    "html-validate": "^8.25.0",
     "image-size": "^1.1.1",
     "pdfjs-dist": "^4.8.69",
     "pdfkit": "^0.15.1",
-    "playwright": "^1.48.2",
+    "playwright": "^1.49.0",
     "semver": "^7.6.3",
     "sharp": "^0.33.5"
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin": "^2.10.1",
+    "@stylistic/eslint-plugin": "^2.11.0",
     "@types/node": "^22.9.0",
     "@types/pdfjs-dist": "2.10.377",
     "@types/pdfkit": "^0.13.5",
     "@types/semver": "^7.5.8",
-    "eslint": "^9.14.0",
-    "typescript": "^5.2.2",
-    "typescript-eslint": "^8.13.0"
+    "eslint": "^9.15.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.15.0"
   }
 }
