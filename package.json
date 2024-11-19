@@ -36,6 +36,7 @@
   "engineStrict": true,
   "dependencies": {
     "@napi-rs/canvas": "^0.1.62",
+    "canvas": "^3.0.0-rc2",
     "file-type": "^19.6.0",
     "html-validate": "^8.25.0",
     "image-size": "^1.1.1",
