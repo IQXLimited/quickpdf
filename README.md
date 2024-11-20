@@ -13,6 +13,7 @@ This project provides a set of utilities for converting various file formats wit
 ## Requirements
 
 - **Node.js**: This project is built with Node.js and uses ES modules. NodeJS > v22 required.
+- Chromium is a dependency of this project, used via Playwright. To install browsers via cli run `npx playwright install --with-deps chromium`. If running in a ci enviroment you can include `--only-shell`
 
 # Operations Available in the Package
 

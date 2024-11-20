@@ -4,7 +4,13 @@
 
 const originalLog = console.log
 console.log = function ( message, ...args ) {
-  if ( message && message === `Warning: applyPath2DToCanvasRenderingContext: "TypeError: Cannot assign to read only property 'clip' of object '#<CanvasRenderingContext2D>'".` ) {
+  if (
+    message &&
+    (
+      message ===
+      `Warning: applyPath2DToCanvasRenderingContext: "TypeError: Cannot assign to read only property 'clip' of object '#<CanvasRenderingContext2D>'".`
+    )
+  ) {
     return // This warning is expected and can be ignored
   }
 
@@ -40,7 +46,7 @@ type Options = {
    * - For converting the rendered image to a specific format.
    * @param {"image/png" | "image/jpeg"} [mime] - Optional buffer configuration for the image format (PNG or JPEG).
    */
-  mime?: "image/png" | "image/jpeg"
+  mime?: "image/png" | "image/jpeg" | "image/webp"
 }
 
 /**
@@ -114,7 +120,17 @@ export const pdf2img = async (
       viewport // Set the viewport for the rendering
     } ).promise
 
-    const imageBuffer = canvas.toBuffer ( )
+    const quality = options.mime === "image/png" ? undefined : 100 // Set quality for JPEG images
+    let imageBuffer: Buffer | undefined = undefined // Create a buffer to store the canvas image
+    if ( options.mime ) {
+      if ( options.mime === "image/png" ) {
+        imageBuffer = canvas.toBuffer ( "image/png" ) // Convert the canvas to a buffer
+      } else {
+        imageBuffer = canvas.toBuffer ( options.mime!, quality ) // Convert the canvas to a buffer
+      }
+    } else {
+      imageBuffer = canvas.toBuffer ( "image/png" ) // Convert the canvas to a buffer
+    }
 
     const processedBuffer = await sharp ( imageBuffer )
       .toFormat ( options.mime === "image/jpeg" ? "jpeg" : "png" ) // Convert to JPEG or PNG

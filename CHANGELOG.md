@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.0.19 (2024-11-20)
+# 1.0.18 (2024-11-20)
+# 1.0.17 (2024-11-20)
+
+- Bug Fixes
+
+# 1.0.16 (2024-11-20)
+# 1.0.15 (2024-11-20)
+# 1.0.14 (2024-11-20)
+
+- Fixed an error where canvas-3.0-rc.2 would resolve instead of `@napi-rs/canvas`
+
+# 1.0.13 (2024-11-20)
 # 1.0.12 (2024-11-20)
 # 1.0.11 (2024-11-19)
 

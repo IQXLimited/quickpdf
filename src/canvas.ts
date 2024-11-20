@@ -2,11 +2,11 @@
 // Date: 2024-11-06
 // File: canvas.ts
 
-import { Canvas, CanvasRenderingContext2D } from "canvas"
+import { Canvas, SKRSContext2D } from "@napi-rs/canvas"
 
 type Factory = {
   canvas: Canvas | null
-  context: CanvasRenderingContext2D | null
+  context: SKRSContext2D | null
 }
 
 export class CanvasFactory {
