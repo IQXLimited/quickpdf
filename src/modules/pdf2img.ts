@@ -2,30 +2,12 @@
 // Date: 2024-11-06
 // File: pdf2img.ts
 
-const originalLog = console.log
-console.log = function ( message, ...args ) {
-  if (
-    message &&
-    (
-      message ===
-      `Warning: applyPath2DToCanvasRenderingContext: "TypeError: Cannot assign to read only property 'clip' of object '#<CanvasRenderingContext2D>'".`
-    )
-  ) {
-    return // This warning is expected and can be ignored
-  }
-
-  // Otherwise, log the warning as usual
-  originalLog.apply ( console, [ message, ...args ] )
-}
-
-import { CanvasFactory } from "../canvas.js" // Import custom canvas factory for rendering PDFs
 import { getBuffer } from "../utilies.js" // Import utility function to get buffer from input
-import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs" // Import PDF.js for PDF document parsing (legacy mode for Node.js)
 import { fileTypeFromBuffer } from "file-type" // Import to determine the file type from a buffer
-import { DocumentInitParameters } from "pdfjs-dist/types/src/display/api.js"
-import { fileURLToPath } from "url"
-import { resolve, dirname, join, sep } from "path"
-import sharp from "sharp"
+import { fileURLToPath, pathToFileURL } from "url"
+import { resolve, dirname } from "path"
+import puppeteer, { ScreenshotOptions } from "puppeteer"
+import { writeFile, readFile, unlink } from "fs/promises"
 
 const __filename = fileURLToPath ( import.meta.url )
 const __dirname = dirname ( __filename )
@@ -34,9 +16,9 @@ const __dirname = dirname ( __filename )
 type Options = {
   /**
    * - defaults to `1`. If you want high-resolution images, increase this
-   * @param {number} [scale] - Scaling factor for rendering the PDF pages. Default is 1.
+   * @param {number} [quality] - Scaling factor for rendering the PDF pages. Default is 1.
    */
-  scale?: number
+  quality?: number
   /**
    * - For decrypting password-protected PDFs.
    * @param {string} [password] - Optional password for decrypting password-protected PDFs.
@@ -44,9 +26,9 @@ type Options = {
   password?: string
   /**
    * - For converting the rendered image to a specific format.
-   * @param {"image/png" | "image/jpeg"} [mime] - Optional buffer configuration for the image format (PNG or JPEG).
+   * @param {"png" | "jpeg" | "webp"} [type] - Optional buffer configuration for the image format (PNG or JPEG).
    */
-  mime?: "image/png" | "image/jpeg" | "image/webp"
+  type?: "png" | "jpeg" | "webp"
 }
 
 /**
@@ -61,88 +43,131 @@ export const pdf2img = async (
   input: Buffer | string | URL, // Input can be a PDF file (buffer, string path, or URL)
   options: Options = { } // Options for scaling, password decryption, and image format
 ) => {
-  // Retrieve the buffer from the input PDF
-  const buffer = await getBuffer ( input )
+  const browser = await puppeteer.launch ( {
+    browser: "firefox",
+    headless: true,
+  } )
+  const page = await browser.newPage ( )
 
-  // Validate that the input is a PDF file
-  const type = await fileTypeFromBuffer ( buffer )
-  if ( type?.mime !== "application/pdf" ) {
-    console.error ( `ERROR: Provided File is not a PDF.` )
-    process.exit ( 1 ) // Exit if the file is not a valid PDF
-  }
+  let path: string = ""
+  let buffer: Buffer = Buffer.from ( "" )
+  let tempFile: boolean = false
 
-  // Get the path to the PDF.js package
-  const pdfjsPath = resolve ( __dirname, "..", "..", "node_modules", "pdfjs-dist" )
-
-  // Create an instance of the custom canvas factory
-  const canvasFactory = new CanvasFactory ( )
-
-  // Set up options for rendering the PDF document
-  const newoptions: DocumentInitParameters = {
-    password: options.password ?? undefined, // Set the password for encrypted PDFs if provided
-    standardFontDataUrl: join ( pdfjsPath, `standard_fonts${sep}` ), // Path to the predefined standard fonts
-    cMapUrl: join ( pdfjsPath, `cmaps${sep}` ), // Path to the predefined character maps
-    isEvalSupported: false, // Disable eval support
-    CanvasFactory: CanvasFactory, // Use the custom canvas factory for rendering
-    verbosity: 0, // Disable logging
-    data: Uint8Array.from ( buffer ) // Convert the buffer to a Uint8Array for PDF.js
-  }
-
-  // Load the PDF document
-  const pdfDocument = await getDocument ( newoptions ).promise
-
-  // Get the metadata of the PDF document
-  const metadata: any = await pdfDocument.getMetadata ( )
-
-  const pages = [ ] // Array to store the rendered pages as images
-  // Loop through each page in the PDF
-  for ( let i = 1; i <= pdfDocument.numPages; i++ ) {
-    pages.push ( await getPage ( i ) ) // Render each page and add it to the pages array
-  }
-
-  // Function to render a specific page of the PDF
-  async function getPage ( pageNumber: number ) {
-    const page = await pdfDocument.getPage ( pageNumber )
-
-    // Get the viewport for the page based on the scale option
-    const viewport = page.getViewport ( { scale: options.scale ?? 300 / 72 } ) // Default scale is 300 DPI
-
-    // Create the canvas for rendering the page
-    const { canvas, context } = canvasFactory.create (
-      viewport.width,
-      viewport.height,
-      true
-    )
-
-    // Render the page onto the canvas
-    await page.render ( {
-      canvasContext: context as any, // Use the canvas context for rendering
-      viewport // Set the viewport for the rendering
-    } ).promise
-
-    const quality = options.mime === "image/png" ? undefined : 100 // Set quality for JPEG images
-    let imageBuffer: Buffer | undefined = undefined // Create a buffer to store the canvas image
-    if ( options.mime ) {
-      if ( options.mime === "image/png" ) {
-        imageBuffer = canvas.toBuffer ( "image/png" ) // Convert the canvas to a buffer
-      } else {
-        imageBuffer = canvas.toBuffer ( options.mime!, quality ) // Convert the canvas to a buffer
-      }
+  if ( Buffer.isBuffer ( input ) ) {
+    buffer = input
+    path = resolve ( __dirname, "temp.pdf" )
+    tempFile = true
+    await writeFile ( path, buffer )
+  } else {
+    if ( typeof input === "string" && input.startsWith ( "http" ) ) {
+      path = input
+      buffer = await getBuffer ( path )
     } else {
-      imageBuffer = canvas.toBuffer ( "image/png" ) // Convert the canvas to a buffer
+      path = pathToFileURL ( resolve ( input.toString ( ) ) ).toString ( )
+      buffer = await readFile ( path )
+    }
+  }
+
+  // Determine the file type from the buffer
+  const fileType = await fileTypeFromBuffer ( buffer )
+  if ( !fileType || fileType.ext !== "pdf" ) {
+    throw new Error ( "Invalid PDF file" )
+  }
+
+  await page.goto ( path, {
+    waitUntil: "networkidle0"
+  } )
+
+  try {
+    // Wait for the password prompt (if it appears)
+    await page.waitForSelector ( 'input[type="password"]', {
+      visible: true,
+      timeout: 5000
+    } )
+
+    // Type the password if prompted
+    console.log ( "Password prompt detected, entering password..." )
+    await page.type ( 'input[type="password"]', options.password || "" )
+    await page.keyboard.press ( "Enter" )
+  } catch ( error ) {
+    // If no password prompt is found, assume the PDF is accessible without a password
+    console.log ( "No password prompt, continuing with unlocked PDF..." )
+  }
+
+  const imageBuffers = [ ]
+
+  const pageCount = await page.evaluate ( ( ) => {
+    if ( ( window as any ).PDFViewerApplication ) {
+      return ( window as any ).PDFViewerApplication.pagesCount
+    }
+    return 0
+  } )
+
+  const metadata = await page.evaluate ( ( ) => {
+    const app = ( window as any ).PDFViewerApplication
+    if ( app && app.pdfDocument ) {
+      return app.documentInfo ?? { }
+    }
+    return { }
+  } )
+
+  // Dynamically calculate the size of the PDF content
+  const pdfDimensions = await page.evaluate ( ( ) => {
+    const canvas: any = document.querySelector ( "canvas" ) // Assuming the PDF is rendered on a canvas
+    const { width, height } = canvas.getBoundingClientRect ( )
+    return { width, height }
+  } )
+
+  // Set the viewport to match the size of the PDF content
+  await page.setViewport ( {
+    width: pdfDimensions.width,
+    height: pdfDimensions.height
+  } )
+
+  for ( let i = 1; i <= pageCount; i++ ) {
+    // Navigate to each page in the PDF (if necessary, depends on how PDF is rendered)
+    await page.evaluate ( ( pageNum ) => {
+      if ( ( window as any ).PDFViewerApplication ) {
+        ( window as any ).PDFViewerApplication.page = pageNum
+      }
+    }, i )
+
+    // Get the bounding box of the .page element
+    const pageBoundingBox = await page.evaluate ( ( ) => {
+      const pageElement: any = document.querySelector ( ".canvasWrapper" )
+      const { x, y, width, height } = pageElement.getBoundingClientRect ( )
+      return { x, y, width, height }
+    } )
+
+    const screenshotOptions: ScreenshotOptions = {
+      fullPage: false, // Capture only the viewport
+      type: options.type ?? "png", // Set the image format
+      clip: {
+        x: pageBoundingBox.x,
+        y: pageBoundingBox.y,
+        width: pageBoundingBox.width,
+        height: pageBoundingBox.height
+      } // Capture only the content
     }
 
-    const processedBuffer = await sharp ( imageBuffer )
-      .toFormat ( options.mime === "image/jpeg" ? "jpeg" : "png" ) // Convert to JPEG or PNG
-      .toBuffer ( ) // Return the processed buffer
+    if ( options.type && options.type !== "png" ) {
+      screenshotOptions.quality = options.quality ?? 100
+    }
 
-    return processedBuffer // Return the rendered page buffer
+    // Take a screenshot of the current page
+    imageBuffers.push ( await page.screenshot ( screenshotOptions ) )
   }
+
+  if ( tempFile ) {
+    await unlink ( path )
+  }
+
+  await browser.close ( )
 
   // Return the rendered pages and metadata
   return {
-    length: pdfDocument.numPages, // Total number of pages in the PDF
+    length: pageCount, // Total number of pages in the PDF
     metadata: metadata.info, // PDF metadata
-    pages // Array of rendered page buffers
+    pages: imageBuffers // Array of rendered page buffers
   }
 }

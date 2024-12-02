@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.1.4 (2024-12-02)
+- Fixed errors from 1.1.0.
+
+# 1.1.3 (2024-11-29)
+- Rollback
+
+# 1.1.2 (2024-11-28)
+- Allow for additional HTTP Headers in the request for a PDF document.
+
+# 1.1.1 (2024-11-28)
+# 1.1.0 (2024-11-28)
+- Generate a PDF to an Image has been reworked. This is to force the removal of node canvas all together which seems to be no longer supported. It does mean however we can no longer support pdf by buffer or a password encrypted pdf.
+
 # 1.0.21 (2024-11-21)
 # 1.0.20 (2024-11-20)
 # 1.0.19 (2024-11-20)

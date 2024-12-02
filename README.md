@@ -1,7 +1,7 @@
 # QuickPDF
 Handling PDFs in NodeJS (📃 to 🖼️)
 
-This project provides a set of utilities for converting various file formats without the need for additional dependencies. It supports multiple file types and leverages technologies like `Playwright`, `PDFKit`, and `pdfjs-dist` for file processing.
+This project provides a set of utilities for converting various file formats without the need for additional dependencies. It supports multiple file types and leverages technologies like `Puppeteer` and `PDFKit` for file processing.
 
 ## Features
 
@@ -103,6 +103,6 @@ pdf2img(input: Buffer | string | URL, options: Options = {})
 
 | Property  | Type                                                                 | Description                                      |
 |-----------|----------------------------------------------------------------------|--------------------------------------------------|
-| `scale`   | `number`                                                             | Scaling factor for rendering the PDF pages. Default is 1. |
+| `quality`   | `number`                                                             | Quality for rendering the PDF pages, not applicable for PNG. Default is 100. |
 | `password`| `string`                                                             | Optional password for decrypting password-protected PDFs. |
-| `mime`    | `string`                                                             | The mime type to output - "image/png" | "image/jpeg". Default is "image/png". |
+| `type`    | `string`                                                             | The mime type to output - "png" | "jpeg" | "webp". Default is "png". |

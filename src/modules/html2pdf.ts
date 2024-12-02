@@ -4,8 +4,9 @@
 
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
-import { chromium } from "playwright" // Import Playwright for rendering HTML in a headless browser
+// import { chromium } from "playwright" // Import Playwright for rendering HTML in a headless browser
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
+import puppeteer from "puppeteer"
 
 export type Options = {
   /**
@@ -43,7 +44,7 @@ export const html2pdf = async (
     }
   } ) // Initialize HTML validator
 
-  let htmlContent = input.toString ()
+  let htmlContent = input.toString ( )
 
   // Fetch HTML content from URL if input is a URL
   if ( htmlContent.startsWith ( "http://" ) || htmlContent.startsWith ( "https://" ) ) {
@@ -56,11 +57,19 @@ export const html2pdf = async (
 
   return validator.validateString ( htmlContent ).then ( async ( res ) => {
     if ( res.valid ) {
-      const browser = await chromium.launch () // Launch a browser instance using Playwright
-      const page = await browser.newPage () // Create a new browser page
+      const browser = await puppeteer.launch ( {
+        browser: "firefox",
+        headless: true,
+      } )
+      const page = await browser.newPage ( )
+
+      // const browser = await chromium.launch () // Launch a browser instance using Playwright
+      // const page = await browser.newPage () // Create a new browser page
       await page.setContent ( htmlContent, { waitUntil: "load" } ) // Set HTML content on the page and wait for it to load
-      const pdfBuffer = await page.pdf ( { format: "A4", printBackground: true, scale: options.scale ?? 1 } ) // Generate PDF from the page content
+      const pdf = await page.pdf ( { format: "A4", printBackground: true, scale: options.scale ?? 1 } ) // Generate PDF from the page content
       await browser.close ( ) // Close the browser instance
+
+      const pdfBuffer = Buffer.from ( pdf ) // Convert the PDF buffer to a Node.js buffer
       if ( options.base64 ?? false ) {
         return pdfBuffer.toString ( "base64" ) // Return the generated PDF as a base64 string
       }
