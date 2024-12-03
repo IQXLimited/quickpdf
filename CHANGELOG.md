@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.1.11 (2024-12-03)
+# 1.1.10 (2024-12-03)
 # 1.1.9 (2024-12-03)
 # 1.1.8 (2024-12-03)
 # 1.1.7 (2024-12-03)

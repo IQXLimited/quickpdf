@@ -7,13 +7,13 @@ This project provides a set of utilities for converting various file formats wit
 
 - **HTML to PDF**: Converts HTML content (from a URL or file path) into a PDF.
 - **Image to PDF**: Converts images (JPEG, PNG) into a PDF, with optional headers and footers.
-- **PDF to Image**: Converts PDF files to image formats (JPEG or PNG) using `pdfjs-dist` and `canvas`.
+- **PDF to Image**: Converts PDF files to image formats (JPEG or PNG) using `Puppeteer` and `Firefox`.
 - **Utilities**: Includes helper functions to fetch and read HTML files and read files from local directories.
 
 ## Requirements
 
 - **Node.js**: This project is built with Node.js and uses ES modules. NodeJS > v22 required.
-- Chromium is a dependency of this project, used via Playwright. To install browsers via cli run `npx playwright install --with-deps chromium`. If running in a ci enviroment you can include `--only-shell`
+- Firefox is a dependency of this project, used via Puppeteer. To install browsers via cli run `npx puppeteer browsers install firefox`.
 
 # Operations Available in the Package
 

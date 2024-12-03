@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from "url"
 import { resolve, dirname } from "path"
 import { ScreenshotOptions } from "puppeteer"
 import { writeFile, unlink } from "fs/promises"
-import { firefoxBrowser, launchBrowsers } from "../browsers"
+import { firefoxBrowser, launchBrowsers } from "../browsers.js"
 
 const __filename = fileURLToPath ( import.meta.url )
 const __dirname = dirname ( __filename )
