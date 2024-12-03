@@ -4,8 +4,9 @@
 
 import { fileURLToPath, pathToFileURL } from "url"
 import { resolve, dirname } from "path"
-import puppeteer, { ScreenshotOptions } from "puppeteer"
+import { ScreenshotOptions } from "puppeteer"
 import { writeFile, unlink } from "fs/promises"
+import { firefoxBrowser, launchBrowsers } from "../browsers"
 
 const __filename = fileURLToPath ( import.meta.url )
 const __dirname = dirname ( __filename )
@@ -14,35 +15,31 @@ const pagePoolSize = 5
 const RESOURCE_LIMIT = 100 // Maximum allowed resources
 let resourceCount = 0
 
-const browser = await puppeteer.launch ( {
-  browser: "firefox",
-  headless: true,
-} )
-
-process.on ( "exit", async ( ) => {
-  await browser.close ( )
-} )
-
 const pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
-  const page = await browser.newPage ( )
-  await page.setRequestInterception ( true )
-  await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
-  page.on ( "response", async ( response ) => {
-    const contentType = response.headers ( ) [ "content-type" ]
-    if ( !contentType || !contentType.includes ( "application/pdf" ) ) {
-      throw new Error ( "Input is not a valid PDF file" )
-    }
-  } )
-  page.on ( "request", request => {
-    resourceCount++
-    if ( resourceCount > RESOURCE_LIMIT ) {
-      page.reload ( ) // Reload the page when limit is exceeded
-      resourceCount = 0 // Reset the counter
-    } else {
-      request.continue ( )
-    }
-  } )
-  return page
+  await launchBrowsers ( )
+  if ( firefoxBrowser ) {
+    const page = await firefoxBrowser.newPage ( )
+    await page.setRequestInterception ( true )
+    await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
+    page.on ( "response", async ( response ) => {
+      const contentType = response.headers ( ) [ "content-type" ]
+      if ( !contentType || !contentType.includes ( "application/pdf" ) ) {
+        throw new Error ( "Input is not a valid PDF file" )
+      }
+    } )
+    page.on ( "request", request => {
+      resourceCount++
+      if ( resourceCount > RESOURCE_LIMIT ) {
+        page.reload ( ) // Reload the page when limit is exceeded
+        resourceCount = 0 // Reset the counter
+      } else {
+        request.continue ( )
+      }
+    } )
+    return page
+  } else {
+    throw new Error ( "Browser not available" )
+  }
 } ) )
 
 // Options type for customizing the image conversion process
@@ -76,11 +73,15 @@ export const pdf2img = async (
   input: Buffer | string | URL, // Input can be a PDF file (buffer, string path, or URL)
   options: Options = { } // Options for scaling, password decryption, and image format
 ) => {
+  if ( !firefoxBrowser ) {
+    throw new Error ( "Browser not available" )
+  }
+
   let page = pagePool.pop ( )
   let tempPage = false
   if ( !page ) {
     tempPage = true
-    page = await browser.newPage ( )
+    page = await firefoxBrowser.newPage ( )
   }
 
   let path: string = ""

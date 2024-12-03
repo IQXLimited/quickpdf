@@ -5,7 +5,7 @@
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
-import puppeteer from "puppeteer"
+import { chromiumBrowser, launchBrowsers } from "../browsers.js"
 
 export type Options = {
   /**
@@ -29,29 +29,25 @@ const pagePoolSize = 5
 const RESOURCE_LIMIT = 100 // Maximum allowed resources
 let resourceCount = 0
 
-const browser = await puppeteer.launch ( {
-  browser: "chrome",
-  headless: true,
-} )
-
-process.on ( "exit", async ( ) => {
-  await browser.close ( )
-} )
-
 const pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
-  const page = await browser.newPage ( )
-  await page.setRequestInterception ( true )
-  await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
-  page.on ( "request", request => {
-    resourceCount++
-    if ( resourceCount > RESOURCE_LIMIT ) {
-      page.reload ( ) // Reload the page when limit is exceeded
-      resourceCount = 0 // Reset the counter
-    } else {
-      request.continue ( )
-    }
-  } )
-  return page
+  await launchBrowsers ( )
+  if ( chromiumBrowser ) {
+    const page = await chromiumBrowser.newPage ( )
+    await page.setRequestInterception ( true )
+    await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
+    page.on ( "request", request => {
+      resourceCount++
+      if ( resourceCount > RESOURCE_LIMIT ) {
+        page.reload ( ) // Reload the page when limit is exceeded
+        resourceCount = 0 // Reset the counter
+      } else {
+        request.continue ( )
+      }
+    } )
+    return page
+  } else {
+    throw new Error ( "Browser not available" )
+  }
 } ) )
 
 /**
@@ -83,11 +79,15 @@ export const html2pdf = async (
     htmlContent = await readHtmlFromFilePath ( htmlContent )
   }
 
+  if ( !chromiumBrowser ) {
+    throw new Error ( "Browser not available" )
+  }
+
   let page = pagePool.pop ( )
   let tempPage = false
   if ( !page ) {
     tempPage = true
-    page = await browser.newPage ( )
+    page = await chromiumBrowser.newPage ( )
   }
 
   return validator.validateString ( htmlContent ).then ( async ( res ) => {
@@ -96,7 +96,6 @@ export const html2pdf = async (
       // const page = await browser.newPage () // Create a new browser page
       await page.setContent ( htmlContent, { waitUntil: "load" } ) // Set HTML content on the page and wait for it to load
       const pdf = await page.pdf ( { format: "A4", printBackground: true, scale: options.scale ?? 1 } ) // Generate PDF from the page content
-      await browser.close ( ) // Close the browser instance
 
       const pdfBuffer = Buffer.from ( pdf ) // Convert the PDF buffer to a Node.js buffer
       if ( options.base64 ?? false ) {

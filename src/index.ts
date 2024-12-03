@@ -1,4 +1,5 @@
 import { satisfies } from "semver"
+import { launchBrowsers } from "./browsers.js"
 
 const requiredVersion = ">=22.0.0"
 
@@ -8,6 +9,8 @@ if ( !satisfies ( process.version, requiredVersion ) ) {
   )
   process.exit ( 1 )
 }
+
+await launchBrowsers ( )
 
 export * from "./modules/pdf2img.js"
 
