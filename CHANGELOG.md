@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.1.6 (2024-12-02)
+# 1.1.5 (2024-12-02)
 # 1.1.4 (2024-12-02)
 - Fixed errors from 1.1.0.
 

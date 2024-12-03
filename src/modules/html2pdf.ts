@@ -4,7 +4,6 @@
 
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
-// import { chromium } from "playwright" // Import Playwright for rendering HTML in a headless browser
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
 import puppeteer from "puppeteer"
 
@@ -25,6 +24,35 @@ export type Options = {
    */
   scale?: number
 }
+
+const pagePoolSize = 5
+const RESOURCE_LIMIT = 100 // Maximum allowed resources
+let resourceCount = 0
+
+const browser = await puppeteer.launch ( {
+  browser: "chrome",
+  headless: true,
+} )
+
+process.on ( "exit", async ( ) => {
+  await browser.close ( )
+} )
+
+const pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
+  const page = await browser.newPage ( )
+  await page.setRequestInterception ( true )
+  await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
+  page.on ( "request", request => {
+    resourceCount++
+    if ( resourceCount > RESOURCE_LIMIT ) {
+      page.reload ( ) // Reload the page when limit is exceeded
+      resourceCount = 0 // Reset the counter
+    } else {
+      request.continue ( )
+    }
+  } )
+  return page
+} ) )
 
 /**
  * Converts an HTML string or URL to a PDF.
@@ -55,14 +83,15 @@ export const html2pdf = async (
     htmlContent = await readHtmlFromFilePath ( htmlContent )
   }
 
+  let page = pagePool.pop ( )
+  let tempPage = false
+  if ( !page ) {
+    tempPage = true
+    page = await browser.newPage ( )
+  }
+
   return validator.validateString ( htmlContent ).then ( async ( res ) => {
     if ( res.valid ) {
-      const browser = await puppeteer.launch ( {
-        browser: "firefox",
-        headless: true,
-      } )
-      const page = await browser.newPage ( )
-
       // const browser = await chromium.launch () // Launch a browser instance using Playwright
       // const page = await browser.newPage () // Create a new browser page
       await page.setContent ( htmlContent, { waitUntil: "load" } ) // Set HTML content on the page and wait for it to load
@@ -100,6 +129,17 @@ export const html2pdf = async (
           }
         } )
       } )
+    }
+  } ).finally ( async ( ) => {
+    if ( tempPage ) {
+      page.close ( )
+    } else {
+      await page.setViewport ( {
+        width: 800,
+        height: 600,
+        deviceScaleFactor: 1
+      } )
+      pagePool.push ( page )
     }
   } )
 }

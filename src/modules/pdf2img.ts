@@ -2,15 +2,48 @@
 // Date: 2024-11-06
 // File: pdf2img.ts
 
-import { getBuffer } from "../utilies.js" // Import utility function to get buffer from input
-import { fileTypeFromBuffer } from "file-type" // Import to determine the file type from a buffer
 import { fileURLToPath, pathToFileURL } from "url"
 import { resolve, dirname } from "path"
 import puppeteer, { ScreenshotOptions } from "puppeteer"
-import { writeFile, readFile, unlink } from "fs/promises"
+import { writeFile, unlink } from "fs/promises"
 
 const __filename = fileURLToPath ( import.meta.url )
 const __dirname = dirname ( __filename )
+
+const pagePoolSize = 5
+const RESOURCE_LIMIT = 100 // Maximum allowed resources
+let resourceCount = 0
+
+const browser = await puppeteer.launch ( {
+  browser: "firefox",
+  headless: true,
+} )
+
+process.on ( "exit", async ( ) => {
+  await browser.close ( )
+} )
+
+const pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
+  const page = await browser.newPage ( )
+  await page.setRequestInterception ( true )
+  await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
+  page.on ( "response", async ( response ) => {
+    const contentType = response.headers ( ) [ "content-type" ]
+    if ( !contentType || !contentType.includes ( "application/pdf" ) ) {
+      throw new Error ( "Input is not a valid PDF file" )
+    }
+  } )
+  page.on ( "request", request => {
+    resourceCount++
+    if ( resourceCount > RESOURCE_LIMIT ) {
+      page.reload ( ) // Reload the page when limit is exceeded
+      resourceCount = 0 // Reset the counter
+    } else {
+      request.continue ( )
+    }
+  } )
+  return page
+} ) )
 
 // Options type for customizing the image conversion process
 type Options = {
@@ -43,131 +76,156 @@ export const pdf2img = async (
   input: Buffer | string | URL, // Input can be a PDF file (buffer, string path, or URL)
   options: Options = { } // Options for scaling, password decryption, and image format
 ) => {
-  const browser = await puppeteer.launch ( {
-    browser: "firefox",
-    headless: true,
-  } )
-  const page = await browser.newPage ( )
+  let page = pagePool.pop ( )
+  let tempPage = false
+  if ( !page ) {
+    tempPage = true
+    page = await browser.newPage ( )
+  }
 
   let path: string = ""
-  let buffer: Buffer = Buffer.from ( "" )
   let tempFile: boolean = false
 
   if ( Buffer.isBuffer ( input ) ) {
-    buffer = input
     path = resolve ( __dirname, "temp.pdf" )
     tempFile = true
-    await writeFile ( path, buffer )
+    await writeFile ( path, input )
   } else {
     if ( typeof input === "string" && input.startsWith ( "http" ) ) {
       path = input
-      buffer = await getBuffer ( path )
     } else {
       path = pathToFileURL ( resolve ( input.toString ( ) ) ).toString ( )
-      buffer = await readFile ( path )
     }
   }
-
-  // Determine the file type from the buffer
-  const fileType = await fileTypeFromBuffer ( buffer )
-  if ( !fileType || fileType.ext !== "pdf" ) {
-    throw new Error ( "Invalid PDF file" )
-  }
-
-  await page.goto ( path, {
-    waitUntil: "networkidle0"
-  } )
 
   try {
-    // Wait for the password prompt (if it appears)
-    await page.waitForSelector ( 'input[type="password"]', {
-      visible: true,
-      timeout: 5000
+    await page.goto ( path )
+
+    if ( options.password ) {
+      try {
+        // Wait for the password prompt (if it appears)
+        await page.waitForSelector ( 'input[type="password"]', {
+          visible: true,
+          timeout: 5000
+        } )
+
+        // Type the password if prompted
+        console.log ( "Password prompt detected, entering password..." )
+        await page.type ( 'input[type="password"]', options.password || "" )
+        await page.keyboard.press ( "Enter" )
+      } catch { }
+    }
+
+    await page.waitForSelector ( "canvas", { timeout: 5000 } )
+    await page.waitForSelector ( ".loadingIcon", {
+      timeout: 5000,
+      hidden: true
     } )
 
-    // Type the password if prompted
-    console.log ( "Password prompt detected, entering password..." )
-    await page.type ( 'input[type="password"]', options.password || "" )
-    await page.keyboard.press ( "Enter" )
-  } catch ( error ) {
-    // If no password prompt is found, assume the PDF is accessible without a password
-    console.log ( "No password prompt, continuing with unlocked PDF..." )
-  }
+    const imageBuffers = [ ]
 
-  const imageBuffers = [ ]
-
-  const pageCount = await page.evaluate ( ( ) => {
-    if ( ( window as any ).PDFViewerApplication ) {
-      return ( window as any ).PDFViewerApplication.pagesCount
-    }
-    return 0
-  } )
-
-  const metadata = await page.evaluate ( ( ) => {
-    const app = ( window as any ).PDFViewerApplication
-    if ( app && app.pdfDocument ) {
-      return app.documentInfo ?? { }
-    }
-    return { }
-  } )
-
-  // Dynamically calculate the size of the PDF content
-  const pdfDimensions = await page.evaluate ( ( ) => {
-    const canvas: any = document.querySelector ( "canvas" ) // Assuming the PDF is rendered on a canvas
-    const { width, height } = canvas.getBoundingClientRect ( )
-    return { width, height }
-  } )
-
-  // Set the viewport to match the size of the PDF content
-  await page.setViewport ( {
-    width: pdfDimensions.width,
-    height: pdfDimensions.height
-  } )
-
-  for ( let i = 1; i <= pageCount; i++ ) {
-    // Navigate to each page in the PDF (if necessary, depends on how PDF is rendered)
-    await page.evaluate ( ( pageNum ) => {
+    const pageCount = await page.evaluate ( ( ) => {
       if ( ( window as any ).PDFViewerApplication ) {
-        ( window as any ).PDFViewerApplication.page = pageNum
+        return ( window as any ).PDFViewerApplication.pagesCount
       }
-    }, i )
-
-    // Get the bounding box of the .page element
-    const pageBoundingBox = await page.evaluate ( ( ) => {
-      const pageElement: any = document.querySelector ( ".canvasWrapper" )
-      const { x, y, width, height } = pageElement.getBoundingClientRect ( )
-      return { x, y, width, height }
+      return 0
     } )
 
-    const screenshotOptions: ScreenshotOptions = {
-      fullPage: false, // Capture only the viewport
-      type: options.type ?? "png", // Set the image format
-      clip: {
-        x: pageBoundingBox.x,
-        y: pageBoundingBox.y,
-        width: pageBoundingBox.width,
-        height: pageBoundingBox.height
-      } // Capture only the content
+    const metadata = await page.evaluate ( ( ) => {
+      const app = ( window as any ).PDFViewerApplication
+      if ( app && app.pdfDocument ) {
+        return app.documentInfo ?? { }
+      }
+      return { }
+    } )
+
+    // Dynamically calculate the size of the PDF content
+    const pdfDimensions = await page.evaluate ( ( ) => {
+      const canvas: any = document.querySelector ( "canvas" ) // Assuming the PDF is rendered on a canvas
+      const { width, height } = canvas.getBoundingClientRect ( )
+      return { width, height }
+    } )
+
+    // Set the viewport to match the size of the PDF content
+    await page.setViewport ( {
+      width: pdfDimensions.width,
+      height: pdfDimensions.height,
+      deviceScaleFactor: 1
+    } )
+
+    for ( let i = 1; i <= pageCount; i++ ) {
+      // Navigate to each page in the PDF (if necessary, depends on how PDF is rendered)
+      await page.evaluate ( ( pageNum ) => {
+        if ( ( window as any ).PDFViewerApplication ) {
+          ( window as any ).PDFViewerApplication.page = pageNum
+        }
+      }, i )
+
+      // Get the bounding box of the .page element
+      const pageBoundingBox = await page.evaluate ( ( ) => {
+        const pageElement: any = document.querySelector ( "canvas" )
+        const { x, y, width, height } = pageElement.getBoundingClientRect ( )
+        return { x, y, width, height }
+      } )
+
+      const screenshotOptions: ScreenshotOptions = {
+        fullPage: false, // Capture only the viewport
+        type: options.type ?? "png", // Set the image format
+        clip: {
+          x: pageBoundingBox.x,
+          y: pageBoundingBox.y,
+          width: pageBoundingBox.width,
+          height: pageBoundingBox.height
+        } // Capture only the content
+      }
+
+      if ( options.type && options.type !== "png" ) {
+        screenshotOptions.quality = options.quality ?? 100
+      }
+
+      const uint8array = await page.screenshot ( screenshotOptions )
+
+      // Take a screenshot of the current page
+      imageBuffers.push ( Buffer.from ( uint8array ) )
     }
 
-    if ( options.type && options.type !== "png" ) {
-      screenshotOptions.quality = options.quality ?? 100
+    if ( tempFile ) {
+      await unlink ( path )
     }
 
-    // Take a screenshot of the current page
-    imageBuffers.push ( await page.screenshot ( screenshotOptions ) )
-  }
+    if ( tempPage ) {
+      page.close ( )
+    } else {
+      await page.setViewport ( {
+        width: 800,
+        height: 600,
+        deviceScaleFactor: 1
+      } )
+      pagePool.push ( page )
+    }
 
-  if ( tempFile ) {
-    await unlink ( path )
-  }
+    // Return the rendered pages and metadata
+    return {
+      length: pageCount, // Total number of pages in the PDF
+      metadata: metadata.info, // PDF metadata
+      pages: imageBuffers // Array of rendered page buffers
+    }
+  } catch ( error ) {
+    if ( tempFile ) {
+      await unlink ( path )
+    }
 
-  await browser.close ( )
+    if ( tempPage ) {
+      page.close ( )
+    } else {
+      await page.setViewport ( {
+        width: 800,
+        height: 600,
+        deviceScaleFactor: 1
+      } )
+      pagePool.push ( page )
+    }
 
-  // Return the rendered pages and metadata
-  return {
-    length: pageCount, // Total number of pages in the PDF
-    metadata: metadata.info, // PDF metadata
-    pages: imageBuffers // Array of rendered page buffers
+    throw error
   }
 }
