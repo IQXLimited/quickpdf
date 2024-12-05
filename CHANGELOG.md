@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.1.12 (2024-12-05)
+- Fixed an error where a buffer would fail because the file path was not a file address.
+
 # 1.1.11 (2024-12-03)
 # 1.1.10 (2024-12-03)
 # 1.1.9 (2024-12-03)

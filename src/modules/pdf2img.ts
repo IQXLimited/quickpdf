@@ -21,12 +21,7 @@ const pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, asyn
     const page = await firefoxBrowser.newPage ( )
     await page.setRequestInterception ( true )
     await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
-    page.on ( "response", async ( response ) => {
-      const contentType = response.headers ( ) [ "content-type" ]
-      if ( !contentType || !contentType.includes ( "application/pdf" ) ) {
-        throw new Error ( "Input is not a valid PDF file" )
-      }
-    } )
+    await page.goto ( "about:blank" ) // Load a blank page
     page.on ( "request", request => {
       resourceCount++
       if ( resourceCount > RESOURCE_LIMIT ) {
@@ -85,22 +80,25 @@ export const pdf2img = async (
   }
 
   let path: string = ""
+  let address: string = ""
   let tempFile: boolean = false
 
   if ( Buffer.isBuffer ( input ) ) {
     path = resolve ( __dirname, "temp.pdf" )
+    address = pathToFileURL ( path ).toString ( )
     tempFile = true
     await writeFile ( path, input )
   } else {
     if ( typeof input === "string" && input.startsWith ( "http" ) ) {
       path = input
     } else {
-      path = pathToFileURL ( resolve ( input.toString ( ) ) ).toString ( )
+      path = resolve ( input.toString ( ) )
+      address = pathToFileURL ( path ).toString ( )
     }
   }
 
   try {
-    await page.goto ( path )
+    await page.goto ( address )
 
     if ( options.password ) {
       try {
