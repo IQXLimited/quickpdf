@@ -1,4 +1,5 @@
-# QuickPDF
+# QuickPDF [![Publish](https://github.com/IQXLimited/quickpdf/actions/workflows/publish.yml/badge.svg)](https://github.com/IQXLimited/quickpdf/actions/workflows/publish.yml)
+
 Handling PDFs in NodeJS (📃 to 🖼️)
 
 This project provides a set of utilities for converting various file formats without the need for additional dependencies. It supports multiple file types and leverages technologies like `Puppeteer` and `PDFKit` for file processing.
