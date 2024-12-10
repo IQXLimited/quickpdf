@@ -4,7 +4,7 @@ jobs:
   publish:
     name: Publish
     runs-on: linux
-    if: false && github.event_name == 'push' && ( github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' ) # <- This make sure the workflow is skipped without any alert
+    if: github.event_name == 'push' && ( github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' ) # <- This make sure the workflow is skipped without any alert
     steps:
     - uses: actions/checkout@v4
     - name: Build
