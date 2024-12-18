@@ -125,34 +125,14 @@ To build the project, you can use the following scripts:
 
 ## Usage Examples
 
-### ES Module
-
 ```javascript
+// ES Module: Use this in environments that support ES Modules
 import { html2pdf, img2pdf, pdf2img } from '@iqx-limited/quick-pdf';
 
-// Example usage for html2pdf
-const pdfBuffer = await html2pdf('<h1>Hello World</h1>');
-// Do something with pdfBuffer, e.g., save to a file
-import { writeFileSync } from 'fs';
-writeFileSync('output.pdf', pdfBuffer);
-
-// Example usage for img2pdf
-const imgBuffer = await img2pdf('path/to/image.png');
-// Do something with imgBuffer, e.g., save to a file
-writeFileSync('output.pdf', imgBuffer);
-
-// Example usage for pdf2img
-const imgBuffers = await pdf2img('path/to/document.pdf');
-// Do something with imgBuffers, e.g., save each page to a file
-imgBuffers.forEach((buffer, index) => {
-  writeFileSync(`output_page_${index + 1}.png`, buffer);
-});
-```
-
-### CommonJS
-
-```javascript
+// CommonJS: Use this in environments that support CommonJS
 const { html2pdf, img2pdf, pdf2img } = require('@iqx-limited/quick-pdf');
+
+import { writeFileSync } from 'fs';
 const { writeFileSync } = require('fs');
 
 // Example usage for html2pdf
