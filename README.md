@@ -122,3 +122,56 @@ To build the project, you can use the following scripts:
 
 - `npm run build`: This script will build both the ES module and CommonJS-compatible versions of the package.
 - `npm run commonjs`: This script will build only the CommonJS-compatible version of the package.
+
+## Usage Examples
+
+### ES Module
+
+```javascript
+import { html2pdf, img2pdf, pdf2img } from '@iqx-limited/quick-pdf';
+
+// Example usage for html2pdf
+const pdfBuffer = await html2pdf('<h1>Hello World</h1>');
+// Do something with pdfBuffer, e.g., save to a file
+import { writeFileSync } from 'fs';
+writeFileSync('output.pdf', pdfBuffer);
+
+// Example usage for img2pdf
+const imgBuffer = await img2pdf('path/to/image.png');
+// Do something with imgBuffer, e.g., save to a file
+writeFileSync('output.pdf', imgBuffer);
+
+// Example usage for pdf2img
+const imgBuffers = await pdf2img('path/to/document.pdf');
+// Do something with imgBuffers, e.g., save each page to a file
+imgBuffers.forEach((buffer, index) => {
+  writeFileSync(`output_page_${index + 1}.png`, buffer);
+});
+```
+
+### CommonJS
+
+```javascript
+const { html2pdf, img2pdf, pdf2img } = require('@iqx-limited/quick-pdf');
+const { writeFileSync } = require('fs');
+
+// Example usage for html2pdf
+html2pdf('<h1>Hello World</h1>').then(pdfBuffer => {
+  // Do something with pdfBuffer, e.g., save to a file
+  writeFileSync('output.pdf', pdfBuffer);
+});
+
+// Example usage for img2pdf
+img2pdf('path/to/image.png').then(imgBuffer => {
+  // Do something with imgBuffer, e.g., save to a file
+  writeFileSync('output.pdf', imgBuffer);
+});
+
+// Example usage for pdf2img
+pdf2img('path/to/document.pdf').then(imgBuffers => {
+  // Do something with imgBuffers, e.g., save each page to a file
+  imgBuffers.forEach((buffer, index) => {
+    writeFileSync(`output_page_${index + 1}.png`, buffer);
+  });
+});
+```
