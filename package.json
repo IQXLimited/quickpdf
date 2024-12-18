@@ -8,9 +8,10 @@
   "files": [
     "dist/**/*",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "dist/cjs/**/*"
   ],
-  "main": "dist/index.js",
+  "main": "dist/cjs/index.js",
   "types": "dist/index.d.ts",
   "keywords": [
     "pdf",
@@ -26,9 +27,10 @@
   ],
   "repository": "https://github.com/IQXLimited/quickpdf",
   "scripts": {
-    "build": "npm i && npx tsc --build",
+    "build": "npm i && npx tsc --build && npm run commonjs",
     "lint": "npx --yes eslint",
-    "test": "npx --yes tsx test.ts"
+    "test": "npx --yes tsx test.ts",
+    "commonjs": "npx tsc --project tsconfig.cjs.json"
   },
   "engines": {
     "node": ">=22.0.0"

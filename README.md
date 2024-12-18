@@ -107,3 +107,18 @@ pdf2img(input: Buffer | string | URL, options: Options = {})
 | `quality`   | `number`                                                             | Quality for rendering the PDF pages, not applicable for PNG. Default is 100. |
 | `password`| `string`                                                             | Optional password for decrypting password-protected PDFs. |
 | `type`    | `string`                                                             | The mime type to output - "png" | "jpeg" | "webp". Default is "png". |
+
+## CommonJS Build
+
+This package also supports a CommonJS-compatible build. To use the CommonJS version, you can require the module as follows:
+
+```javascript
+const { html2pdf, img2pdf, pdf2img } = require('@iqx-limited/quick-pdf');
+```
+
+## Build
+
+To build the project, you can use the following scripts:
+
+- `npm run build`: This script will build both the ES module and CommonJS-compatible versions of the package.
+- `npm run commonjs`: This script will build only the CommonJS-compatible version of the package.
