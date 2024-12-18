@@ -128,11 +128,10 @@ To build the project, you can use the following scripts:
 ```javascript
 // ES Module: Use this in environments that support ES Modules
 import { html2pdf, img2pdf, pdf2img } from '@iqx-limited/quick-pdf';
+import { writeFileSync } from 'fs';
 
 // CommonJS: Use this in environments that support CommonJS
 const { html2pdf, img2pdf, pdf2img } = require('@iqx-limited/quick-pdf');
-
-import { writeFileSync } from 'fs';
 const { writeFileSync } = require('fs');
 
 // Example usage for html2pdf
