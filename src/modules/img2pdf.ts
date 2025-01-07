@@ -41,8 +41,7 @@ export const img2pdf = async (
     getBuffer ( input ).then ( async ( buf ) => {
       const type = await fileTypeFromBuffer ( buf ) // Detect the file type of the image
       if ( type?.mime !== "image/jpeg" && type?.mime !== "image/png" ) {
-        console.error ( `ERROR: Provided File is not a JPEG or a PNG.` )
-        process.exit ( 1 ) // Exit if the file is not a valid image type
+        throw new Error ( "Provided File is not a JPEG or a PNG." ) // Throw an error if the file is not a valid image type
       }
 
       const pdfBuffers: any[] = [] // Array to store PDF buffers

@@ -58,13 +58,11 @@ process.on ( "exit", async ( ) => {
 process.on ( "SIGINT", async ( ) => {
   console.log ( "SIGINT received. Closing browsers..." )
   await closeBrowsers ( )
-  process.exit ( )
 } )
 
 process.on ( "SIGTERM", async ( ) => {
   console.log ( "SIGTERM received. Closing browsers..." )
   await closeBrowsers ( )
-  process.exit ( )
 } )
 
 // Export the browsers for use in other files

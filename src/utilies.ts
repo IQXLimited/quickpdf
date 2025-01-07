@@ -24,18 +24,15 @@ export async function getBuffer ( input: string | URL | Buffer ): Promise<Buffer
       if ( res.ok ) {
         return res.arrayBuffer ( )
       } else {
-        console.error ( "ERROR: Failed to Fetch the File" )
-        process.exit ( 1 )
+        throw new Error ( "Failed to Fetch the File" )
       }
     } )
     .then ( array => Buffer.from ( array ) )
     .catch ( ( ) => {
       if ( existsSync ( input.toString ( ) ) ) {
         return readFileSync ( input.toString ( ) )
-      } else {
-        console.error ( `ERROR: '${input.toString ( )}' Not Found` )
-        process.exit ( 1 )
       }
+      throw new Error ( "Failed to Fetch the File" )
     } )
 }
 
