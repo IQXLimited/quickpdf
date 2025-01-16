@@ -36,6 +36,7 @@ pdf2img ( pdf )
     index++
   }
   console.log ( "PDF to Image Conversion Successful" )
+  console.log("Test")
 } )
 .then ( ( ) => {
   return img2pdf ( resolve ( __dirname, "./test-assets/pdf-2-img-1.png" ), {
