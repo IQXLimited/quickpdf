@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.3.0 (2025-02-09)
+- Build process now uses ESBuild
+- CJS Support
+- Firefox no longer needs to be installed seperately.
+- Package Update
+
 # 1.2.0 (2025-01-07)
 - Updated Dependencies
 - Removed agressive progress.exit in favour of promise reject.

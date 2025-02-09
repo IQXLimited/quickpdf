@@ -1,47 +1,50 @@
 import puppeteer, { Browser } from "puppeteer"
 
-let chromiumBrowser: Browser | null = null
-let firefoxBrowser: Browser | null = null
+let chrome: Browser | null = null
+let firefox: Browser | null = null
 
-let launchPromise: Promise<void> | null = null  // Keep track of the launch promise
+async function getChromium ( ): Promise<Browser | null> {
+  if ( chrome ) return chrome
 
-// Function to launch both browsers asynchronously
-async function launchBrowsers ( ): Promise<void> {
-  if ( launchPromise ) {
-    return launchPromise
+  try {
+    chrome = await puppeteer.launch ( {
+      args: [ "--no-sandbox", "--disable-setuid-sandbox" ],  // Useful in certain environments (e.g., Docker)
+    } )
+  } catch ( err ) {
+    console.error ( "Error launching Chromium browser in @iqx-limited/quick-form:", err )
   }
 
-  launchPromise = ( async ( ) => {
-    try {
-      // Launch Chromium browser
-      chromiumBrowser = await puppeteer.launch ( {
-        headless: true, // Set to false if you want to see the browser
-        args: [ "--no-sandbox", "--disable-setuid-sandbox" ],  // Useful in certain environments (e.g., Docker)
-      } )
+  return chrome
+}
 
-      // Launch Firefox browser
-      firefoxBrowser = await puppeteer.launch ( {
-        browser: "firefox", // Use Firefox
-        headless: true, // Set to false if you want to see the browser
-        args: [ "--no-sandbox", "--disable-setuid-sandbox" ],  // Useful in certain environments (e.g., Docker)
-      } )
-    } catch ( err ) {
-      console.error ( "Error launching browsers in @iqx-limited/quick-form:", err )
-    }
-  } ) ( )
+async function getFirefox ( ): Promise<Browser | null> {
+  if ( firefox ) return firefox
 
-  return launchPromise
+  try {
+    firefox = await puppeteer.launch ( {
+      browser: "firefox", // Use Firefox
+      headless: true, // Set to false if you want to see the browser
+      args: [ "--no-sandbox", "--disable-setuid-sandbox" ],  // Useful in certain environments (e.g., Docker)
+    } )
+  } catch ( err ) {
+    console.error ( "Error launching Firefox browser in @iqx-limited/quick-form:", err )
+  }
+
+  return firefox
 }
 
 // Function to close both browsers
 async function closeBrowsers ( ): Promise<void> {
   try {
-    if ( chromiumBrowser ) {
-      await chromiumBrowser.close ( )
+    const chrome = await getChromium ( )
+    const firefox = await getFirefox ( )
+
+    if ( chrome ) {
+      await chrome.close ( )
       console.log ( "Chromium Browser Closed" )
     }
-    if ( firefoxBrowser ) {
-      await firefoxBrowser.close ( )
+    if ( firefox ) {
+      await firefox.close ( )
       console.log ( "Firefox Browser Closed" )
     }
   } catch ( err ) {
@@ -66,4 +69,4 @@ process.on ( "SIGTERM", async ( ) => {
 } )
 
 // Export the browsers for use in other files
-export { launchBrowsers, chromiumBrowser, firefoxBrowser };
+export { getChromium, getFirefox }

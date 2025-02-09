@@ -1,4 +1,4 @@
-# QuickPDF [![Publish](https://github.com/IQXLimited/quickpdf/actions/workflows/publish.yml/badge.svg)](https://github.com/IQXLimited/quickpdf/actions/workflows/publish.yml)
+# QuickPDF
 
 Handling PDFs in NodeJS (📃 to 🖼️)
 
@@ -14,7 +14,6 @@ This project provides a set of utilities for converting various file formats wit
 ## Requirements
 
 - **Node.js**: This project is built with Node.js and uses ES modules. NodeJS > v22 required.
-- Firefox is a dependency of this project, used via Puppeteer. To install browsers via cli run `npx puppeteer browsers install firefox`.
 
 # Operations Available in the Package
 
