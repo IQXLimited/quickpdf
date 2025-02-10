@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file.
 # 1.3.0 (2025-02-09)
 - Build process now uses ESBuild
 - CJS Support
-- Firefox no longer needs to be installed seperately.
+- Firefox no longer needs to be installed separately.
 - Package Update
 - New Vscode Tasks
 - Reduced Minimum Node Version to v20
