@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 - CJS Support
 - Firefox no longer needs to be installed seperately.
 - Package Update
+- New Vscode Tasks
+- Reduced Minimum Node Version to v20
 
 # 1.2.0 (2025-01-07)
 - Updated Dependencies
