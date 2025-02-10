@@ -10,7 +10,6 @@ if ( !satisfies ( process.version, requiredVersion ) ) {
   process.exit ( 1 )
 }
 
-// Start the browsers
 launchBrowsers ( )
 
 export * from "./modules/pdf2img.js"
@@ -19,4 +18,4 @@ export * from "./modules/img2pdf.js"
 
 export * from "./modules/html2pdf.js"
 
-export { closeBrowsers } from "./browsers.js"
+export { closeBrowsers, launchBrowsers } from "./browsers.js"

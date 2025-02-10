@@ -4,7 +4,7 @@
 const { html2pdf, img2pdf, pdf2img, closeBrowsers } = require ( "../dist/index.cjs" )
 const { mkdirSync, statSync } = require ( "fs" )
 const { rm, writeFile } = require ( "fs/promises" )
-const { dirname, resolve } = require ( "path" )
+const { resolve } = require ( "path" )
 
 const testAssetsDir = resolve ( __dirname, "./test-assets" )
 

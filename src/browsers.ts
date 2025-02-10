@@ -1,13 +1,14 @@
 import puppeteer, { Browser } from "puppeteer"
 
-let chrome: Promise<Browser> | null = null
-let firefox: Promise<Browser> | null = null
+let chrome: Browser | null = null
+let firefox: Browser | null = null
+let launchInProgress: Promise<void> = Promise.resolve ( )
 
 async function getChromium ( ): Promise<Browser | null> {
   if ( chrome ) return chrome
 
   try {
-    chrome = puppeteer.launch ( {
+    chrome = await puppeteer.launch ( {
       args: [ "--no-sandbox", "--disable-setuid-sandbox" ],  // Useful in certain environments (e.g., Docker)
     } )
   } catch ( err ) {
@@ -21,7 +22,7 @@ async function getFirefox ( ): Promise<Browser | null> {
   if ( firefox ) return firefox
 
   try {
-    firefox = puppeteer.launch ( {
+    firefox = await puppeteer.launch ( {
       browser: "firefox", // Use Firefox
       headless: true, // Set to false if you want to see the browser
       args: [ "--no-sandbox", "--disable-setuid-sandbox" ],  // Useful in certain environments (e.g., Docker)
@@ -38,12 +39,10 @@ async function closeBrowsers ( ): Promise<void> {
     if ( chrome ) {
       await ( await chrome ).close ( )
       chrome = null
-      console.log ( "Chromium Browser Closed" )
     }
     if ( firefox ) {
       await ( await firefox ).close ( )
       firefox = null
-      console.log ( "Firefox Browser Closed" )
     }
   } catch ( err ) {
     console.error ( "Error closing browsers in @iqx-limited/quick-form:", err )
@@ -51,8 +50,11 @@ async function closeBrowsers ( ): Promise<void> {
 }
 
 async function launchBrowsers ( ): Promise<void> {
-  await getChromium ( )
-  await getFirefox ( )
+  launchInProgress = new Promise<void> ( async ( resolve ) => {
+    await getChromium ( )
+    await getFirefox ( )
+    resolve ( )
+  } )
 }
 
 // Listen for process exit and close browsers
@@ -72,4 +74,4 @@ process.on ( "SIGTERM", async ( ) => {
 } )
 
 // Export the browsers for use in other files
-export { getChromium, getFirefox, closeBrowsers, launchBrowsers }
+export { getChromium, getFirefox, closeBrowsers, launchBrowsers, launchInProgress }
