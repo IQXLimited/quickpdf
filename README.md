@@ -13,7 +13,7 @@ This project provides a set of utilities for converting various file formats wit
 
 ## Requirements
 
-- **Node.js**: This project is built with Node.js and uses ES modules. NodeJS > v22 required.
+- **Node.js**: This project is built with Node.js and uses ES modules. NodeJS > v20 required.
 
 # Operations Available in the Package
 

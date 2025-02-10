@@ -1,6 +1,6 @@
 import { satisfies } from "semver"
 
-const requiredVersion = ">=22.0.0"
+const requiredVersion = ">=20.0.0"
 
 if ( !satisfies ( process.version, requiredVersion ) ) {
   console.error (
