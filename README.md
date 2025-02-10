@@ -116,3 +116,12 @@ closeBrowsers()
 ```
 
 Call to close all instances in a given script.
+
+# 5. `launchBrowsers`
+
+### Function Signature:
+```typescript
+launchBrowsers()
+```
+
+Relaunch browsers if needed, this is automatically called on startup.
