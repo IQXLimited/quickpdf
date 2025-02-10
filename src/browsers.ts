@@ -1,6 +1,8 @@
 import { exec } from "child_process"
+import { access, mkdir } from "fs/promises"
 import { homedir } from "os"
 import puppeteer, { Browser } from "puppeteer"
+import { resolve } from "path"
 
 let chrome: Browser | null = null
 let firefox: Browser | null = null
@@ -8,18 +10,30 @@ let launchInProgress: Promise<void> = Promise.resolve ( )
 let installInProgress: Promise<void> = Promise.resolve ( )
 
 async function installBrowsers ( ): Promise<void> {
-  installInProgress = new Promise<void> ( async ( resolve, reject ) => {
+  try {
+    await access ( homedir ( ) + "/.cache" )
+  } catch {
+    await mkdir ( homedir ( ) + "/.cache" )
+  }
+
+  try {
+    await access ( homedir ( ) + "/.cache/puppeteer" )
+  } catch {
+    await mkdir ( homedir ( ) + "/.cache/puppeteer" )
+  }
+
+  installInProgress = new Promise<void> ( async ( _resolve, reject ) => {
     exec (
       "npx --yes @puppeteer/browsers install chrome@stable && npx --yes @puppeteer/browsers install firefox@stable",
       {
-        cwd: homedir ( )
+        cwd: resolve ( homedir ( ), ".cache", "puppeteer" )
       },
       ( err, stdout ) => {
         if ( err ) {
           reject ( err )
         } else {
           console.log ( stdout )
-          resolve ( )
+          _resolve ( )
         }
       }
     )
