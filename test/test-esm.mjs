@@ -26,8 +26,6 @@ if ( !isDirectory ( testAssetsDir ) ) {
 
 const runTests = async ( ) => {
   try {
-    console.log ( "Testing (ESM)..." )
-
     const pdf = "https://www.orimi.com/pdf-test.pdf"
 
     const pdf2imgResult = await pdf2img ( pdf )
@@ -58,4 +56,5 @@ const runTests = async ( ) => {
   }
 }
 
+console.log ( "Testing (ESM)..." )
 runTests ( )

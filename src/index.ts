@@ -1,5 +1,5 @@
 import { satisfies } from "semver"
-import { launchBrowsers } from "./browsers.js"
+import { launchBrowsers, installBrowsers } from "./browsers.js"
 
 const requiredVersion = ">=20.0.0"
 
@@ -10,7 +10,9 @@ if ( !satisfies ( process.version, requiredVersion ) ) {
   process.exit ( 1 )
 }
 
-launchBrowsers ( )
+installBrowsers ( ).then ( launchBrowsers ).catch ( e => {
+  console.error ( "Puppeteer installation failed in @iqx-limited/quick-form:", e )
+} )
 
 export * from "./modules/pdf2img.js"
 

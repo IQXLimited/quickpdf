@@ -24,8 +24,6 @@ if ( !isDirectory ( testAssetsDir ) ) {
 
 const runTests = async ( ) => {
   try {
-    console.log ( "Testing (CommonJS)..." )
-
     const pdf = "https://www.orimi.com/pdf-test.pdf"
 
     const pdf2imgResult = await pdf2img ( pdf )
@@ -56,4 +54,5 @@ const runTests = async ( ) => {
   }
 }
 
+console.log ( "Testing (CommonJS)..." )
 runTests ( )

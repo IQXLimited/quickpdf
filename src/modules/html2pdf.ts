@@ -5,7 +5,7 @@
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
-import { getChromium, launchInProgress } from "../browsers.js"
+import { checkForLaunching, getChromium } from "../browsers.js"
 import { Browser, Page } from "puppeteer"
 
 export type Options = {
@@ -89,7 +89,7 @@ export const html2pdf = async (
     htmlContent = await readHtmlFromFilePath ( htmlContent )
   }
 
-  await launchInProgress
+  await checkForLaunching ( )
   browser = await getChromium ( )
 
   if ( !browser ) {

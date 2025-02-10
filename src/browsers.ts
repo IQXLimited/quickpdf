@@ -1,10 +1,33 @@
+import { exec } from "child_process"
+import { homedir } from "os"
 import puppeteer, { Browser } from "puppeteer"
 
 let chrome: Browser | null = null
 let firefox: Browser | null = null
 let launchInProgress: Promise<void> = Promise.resolve ( )
+let installInProgress: Promise<void> = Promise.resolve ( )
+
+async function installBrowsers ( ): Promise<void> {
+  installInProgress = new Promise<void> ( async ( resolve, reject ) => {
+    exec (
+      "npx --yes @puppeteer/browsers install chrome@stable && npx --yes @puppeteer/browsers install firefox@stable",
+      {
+        cwd: homedir ( )
+      },
+      ( err, stdout ) => {
+        if ( err ) {
+          reject ( err )
+        } else {
+          console.log ( stdout )
+          resolve ( )
+        }
+      }
+    )
+  } )
+}
 
 async function getChromium ( ): Promise<Browser | null> {
+  await installInProgress
   if ( chrome ) return chrome
 
   try {
@@ -15,10 +38,12 @@ async function getChromium ( ): Promise<Browser | null> {
     console.error ( "Error launching Chromium browser in @iqx-limited/quick-form:", err )
   }
 
+  console.log ( "Chromium Launched" )
   return chrome
 }
 
 async function getFirefox ( ): Promise<Browser | null> {
+  await installInProgress
   if ( firefox ) return firefox
 
   try {
@@ -31,6 +56,7 @@ async function getFirefox ( ): Promise<Browser | null> {
     console.error ( "Error launching Firefox browser in @iqx-limited/quick-form:", err )
   }
 
+  console.log ( "Firefox Launched" )
   return firefox
 }
 
@@ -51,6 +77,7 @@ async function closeBrowsers ( ): Promise<void> {
 
 async function launchBrowsers ( ): Promise<void> {
   launchInProgress = new Promise<void> ( async ( resolve ) => {
+    await installInProgress
     await getChromium ( )
     await getFirefox ( )
     resolve ( )
@@ -73,5 +100,10 @@ process.on ( "SIGTERM", async ( ) => {
   await closeBrowsers ( )
 } )
 
+async function checkForLaunching ( ) {
+  await installInProgress
+  await launchInProgress
+}
+
 // Export the browsers for use in other files
-export { getChromium, getFirefox, closeBrowsers, launchBrowsers, launchInProgress }
+export { getChromium, getFirefox, closeBrowsers, launchBrowsers, installBrowsers, checkForLaunching }
