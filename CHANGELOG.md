@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.3.3 (2025-02-09)
+- Patch browser install
+
 # 1.3.2 (2025-02-09)
 - Launch Browsers Early
 - Allow manually launching the browsers

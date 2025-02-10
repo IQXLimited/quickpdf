@@ -3,7 +3,6 @@ import commonjs from "@rollup/plugin-commonjs"
 import typescript from "@rollup/plugin-typescript"
 import json from "@rollup/plugin-json"
 import nodeExternals from "rollup-plugin-node-externals"
-import copy from "rollup-plugin-copy"
 
 export default {
   input: "src/index.ts",
@@ -39,14 +38,6 @@ export default {
       baseUrl: "./",
       declaration: true,
       declarationDir: "dist/types",
-    } ),
-    copy ( {
-      targets: [
-        {
-          src: ".puppeteerrc.cjs",
-          dest: "dist"
-        }
-      ]
     } )
   ],
   context: "globalThis"
