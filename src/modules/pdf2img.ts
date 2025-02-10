@@ -236,9 +236,5 @@ export const pdf2img = async (
     }
 
     throw error
-  } finally {
-    if ( browser && typeof process !== "undefined" && process.versions && process.versions.node ) {
-      await browser.close ( )
-    }
   }
 }

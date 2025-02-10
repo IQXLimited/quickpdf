@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.3.1 (2025-02-09)
+= Bug Fixes
+- Export Close Browsers
+
 # 1.3.0 (2025-02-09)
 - Build process now uses ESBuild
 - CJS Support

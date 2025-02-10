@@ -14,3 +14,5 @@ export * from "./modules/pdf2img.js"
 export * from "./modules/img2pdf.js"
 
 export * from "./modules/html2pdf.js"
+
+export { closeBrowsers } from "./browsers.js"

@@ -106,3 +106,13 @@ pdf2img(input: Buffer | string | URL, options: Options = {})
 | `quality`   | `number`                                                             | Quality for rendering the PDF pages, not applicable for PNG. Default is 100. |
 | `password`| `string`                                                             | Optional password for decrypting password-protected PDFs. |
 | `type`    | `string`                                                             | The mime type to output - "png" | "jpeg" | "webp". Default is "png". |
+
+
+# 4. `closeBrowsers`
+
+### Function Signature:
+```typescript
+closeBrowsers()
+```
+
+Call to close all instances in a given script.

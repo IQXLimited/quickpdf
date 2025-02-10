@@ -1,4 +1,7 @@
-const { html2pdf, img2pdf, pdf2img } = require ( "../dist/index.cjs" )
+// TODO:
+// 1. Test Sequential Calls to the Same Browser
+
+const { html2pdf, img2pdf, pdf2img, closeBrowsers } = require ( "../dist/index.cjs" )
 const { mkdirSync, statSync } = require ( "fs" )
 const { rm, writeFile } = require ( "fs/promises" )
 const { dirname, resolve } = require ( "path" )
@@ -49,6 +52,7 @@ const runTests = async ( ) => {
   } finally {
     // Clean up the test-assets directory after the tests
     await rm ( testAssetsDir, { force: true, recursive: true } )
+    await closeBrowsers ( )
   }
 }
 

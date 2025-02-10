@@ -36,15 +36,14 @@ async function getFirefox ( ): Promise<Browser | null> {
 // Function to close both browsers
 async function closeBrowsers ( ): Promise<void> {
   try {
-    const chrome = await getChromium ( )
-    const firefox = await getFirefox ( )
-
     if ( chrome ) {
       await chrome.close ( )
+      chrome = null
       console.log ( "Chromium Browser Closed" )
     }
     if ( firefox ) {
       await firefox.close ( )
+      firefox = null
       console.log ( "Firefox Browser Closed" )
     }
   } catch ( err ) {
@@ -69,4 +68,4 @@ process.on ( "SIGTERM", async ( ) => {
 } )
 
 // Export the browsers for use in other files
-export { getChromium, getFirefox }
+export { getChromium, getFirefox, closeBrowsers }

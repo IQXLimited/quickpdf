@@ -152,9 +152,5 @@ export const html2pdf = async (
       } )
       pagePool.push ( page )
     }
-
-    if ( browser && typeof process !== "undefined" && process.versions && process.versions.node ) {
-      await browser.close ( )
-    }
   } )
 }
