@@ -4,7 +4,7 @@
     {
       "label": "Publish Patch Version",
       "type": "shell",
-      "command": "npm run lint && npm run test:esm && npm run test:cjs && npm version patch && npm publish --access public",
+      "command": "npm run lint && npm run test && npm version patch && npm publish --access public",
       "group": {
         "kind": "build",
         "isDefault": false
@@ -15,7 +15,7 @@
     {
       "label": "Publish Minor Version",
       "type": "shell",
-      "command": "npm run lint && npm run test:esm && npm run test:cjs && npm version minor && npm publish --access public",
+      "command": "npm run lint && npm run test && npm version minor && npm publish --access public",
       "group": {
         "kind": "build",
         "isDefault": false
@@ -26,7 +26,7 @@
     {
       "label": "Publish Major Version",
       "type": "shell",
-      "command": "npm run lint && npm run test:esm && npm run test:cjs && npm version major && npm publish --access public",
+      "command": "npm run lint && npm run test && npm version major && npm publish --access public",
       "group": {
         "kind": "build",
         "isDefault": false
