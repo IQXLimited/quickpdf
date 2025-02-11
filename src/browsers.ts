@@ -52,7 +52,6 @@ async function getChromium ( ): Promise<Browser | null> {
     console.error ( "Error launching Chromium browser in @iqx-limited/quick-form:", err )
   }
 
-  console.log ( "Chromium Launched" )
   return chrome
 }
 
@@ -70,7 +69,6 @@ async function getFirefox ( ): Promise<Browser | null> {
     console.error ( "Error launching Firefox browser in @iqx-limited/quick-form:", err )
   }
 
-  console.log ( "Firefox Launched" )
   return firefox
 }
 
