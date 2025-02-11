@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.3.6 (2025-02-09)
+# 1.3.5 (2025-02-09)
+# 1.3.4 (2025-02-09)
+# 1.3.3 (2025-02-09)
+- Patch browser install
+
+# 1.3.2 (2025-02-09)
+- Launch Browsers Early
+- Allow manually launching the browsers
+
+# 1.3.1 (2025-02-09)
+- Bug Fixes
+- Export Close Browsers
+
+# 1.3.0 (2025-02-09)
+- Build process now uses ESBuild
+- CJS Support
+- Firefox no longer needs to be installed separately.
+- Package Update
+- New Vscode Tasks
+- Reduced Minimum Node Version to v20
+
 # 1.2.0 (2025-01-07)
 - Updated Dependencies
 - Removed agressive progress.exit in favour of promise reject.

@@ -5,7 +5,8 @@
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
-import { chromiumBrowser, launchBrowsers } from "../browsers.js"
+import { checkForLaunching, getChromium } from "../browsers.js"
+import { Browser, Page } from "puppeteer"
 
 export type Options = {
   /**
@@ -28,27 +29,36 @@ export type Options = {
 const pagePoolSize = 5
 const RESOURCE_LIMIT = 100 // Maximum allowed resources
 let resourceCount = 0
+let pagePool: Page [ ] = [ ]
+let browser: Browser | null = null
 
-const pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
-  await launchBrowsers ( )
-  if ( chromiumBrowser ) {
-    const page = await chromiumBrowser.newPage ( )
-    await page.setRequestInterception ( true )
-    await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
-    page.on ( "request", request => {
-      resourceCount++
-      if ( resourceCount > RESOURCE_LIMIT ) {
-        page.reload ( ) // Reload the page when limit is exceeded
-        resourceCount = 0 // Reset the counter
-      } else {
-        request.continue ( )
-      }
-    } )
-    return page
-  } else {
-    throw new Error ( "Browser not available" )
+async function launchPages ( ) {
+  if ( pagePool.length > 0 ) {
+    return pagePool
   }
-} ) )
+
+  pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
+    if ( browser ) {
+      const page = await browser.newPage ( )
+      await page.setRequestInterception ( true )
+      await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
+      await page.goto ( "about:blank" ) // Load a blank page
+      page.on ( "request", request => {
+        resourceCount++
+        if ( resourceCount > RESOURCE_LIMIT ) {
+          page.reload ( ) // Reload the page when limit is exceeded
+          resourceCount = 0 // Reset the counter
+        } else {
+          request.continue ( )
+        }
+      } )
+      return page
+    } else {
+      throw new Error ( "Browser not available" )
+    }
+  } ) )
+  return pagePool
+}
 
 /**
  * Converts an HTML string or URL to a PDF.
@@ -79,21 +89,24 @@ export const html2pdf = async (
     htmlContent = await readHtmlFromFilePath ( htmlContent )
   }
 
-  if ( !chromiumBrowser ) {
+  await checkForLaunching ( )
+  browser = await getChromium ( )
+
+  if ( !browser ) {
     throw new Error ( "Browser not available" )
   }
+
+  const pagePool = await launchPages ( )
 
   let page = pagePool.pop ( )
   let tempPage = false
   if ( !page ) {
     tempPage = true
-    page = await chromiumBrowser.newPage ( )
+    page = await browser.newPage ( )
   }
 
   return validator.validateString ( htmlContent ).then ( async ( res ) => {
     if ( res.valid ) {
-      // const browser = await chromium.launch () // Launch a browser instance using Playwright
-      // const page = await browser.newPage () // Create a new browser page
       await page.setContent ( htmlContent, { waitUntil: "load" } ) // Set HTML content on the page and wait for it to load
       const pdf = await page.pdf ( { format: "A4", printBackground: true, scale: options.scale ?? 1 } ) // Generate PDF from the page content
 

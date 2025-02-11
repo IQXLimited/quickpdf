@@ -1,0 +1,38 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Publish Patch Version",
+      "type": "shell",
+      "command": "npm run lint && npm run test && npm version patch && npm publish --access public",
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": [],
+      "detail": "Bumps the patch version and publishes the package"
+    },
+    {
+      "label": "Publish Minor Version",
+      "type": "shell",
+      "command": "npm run lint && npm run test && npm version minor && npm publish --access public",
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": [],
+      "detail": "Bumps the minor version and publishes the package"
+    },
+    {
+      "label": "Publish Major Version",
+      "type": "shell",
+      "command": "npm run lint && npm run test && npm version major && npm publish --access public",
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "problemMatcher": [],
+      "detail": "Bumps the major version and publishes the package"
+    }
+  ]
+}

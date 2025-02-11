@@ -1,4 +1,4 @@
-# QuickPDF [![Publish](https://github.com/IQXLimited/quickpdf/actions/workflows/publish.yml/badge.svg)](https://github.com/IQXLimited/quickpdf/actions/workflows/publish.yml)
+# QuickPDF
 
 Handling PDFs in NodeJS (📃 to 🖼️)
 
@@ -13,8 +13,7 @@ This project provides a set of utilities for converting various file formats wit
 
 ## Requirements
 
-- **Node.js**: This project is built with Node.js and uses ES modules. NodeJS > v22 required.
-- Firefox is a dependency of this project, used via Puppeteer. To install browsers via cli run `npx puppeteer browsers install firefox`.
+- **Node.js**: This project is built with Node.js and uses ES modules. NodeJS > v20 required.
 
 # Operations Available in the Package
 
@@ -107,3 +106,22 @@ pdf2img(input: Buffer | string | URL, options: Options = {})
 | `quality`   | `number`                                                             | Quality for rendering the PDF pages, not applicable for PNG. Default is 100. |
 | `password`| `string`                                                             | Optional password for decrypting password-protected PDFs. |
 | `type`    | `string`                                                             | The mime type to output - "png" | "jpeg" | "webp". Default is "png". |
+
+
+# 4. `closeBrowsers`
+
+### Function Signature:
+```typescript
+closeBrowsers()
+```
+
+Call to close all instances in a given script.
+
+# 5. `launchBrowsers`
+
+### Function Signature:
+```typescript
+launchBrowsers()
+```
+
+Relaunch browsers if needed, this is automatically called on startup.

@@ -2,7 +2,6 @@
 // Date: 2024-11-06
 // File: img2pdf.ts
 
-import { fileTypeFromBuffer } from "file-type" // Import to detect the file type from a buffer
 import { imageSize } from "image-size" // Import to get image dimensions
 import PDFDocument from "pdfkit" // Import PDFKit for PDF document generation
 import { getBuffer } from "../utilies.js" // Import custom utility function to retrieve buffer from input
@@ -37,6 +36,7 @@ export const img2pdf = async (
   input: Buffer | string | URL, // Image input in the form of a buffer, file path, or URL
   options: Options = {} // Optional settings for header, footer, and font size
 ) => {
+  const { fileTypeFromBuffer } = await import ( "file-type" ) // Import to detect the file type from a buffer
   return new Promise<Buffer> ( ( resolve, reject ) => {
     getBuffer ( input ).then ( async ( buf ) => {
       const type = await fileTypeFromBuffer ( buf ) // Detect the file type of the image
