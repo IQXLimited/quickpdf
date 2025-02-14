@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.3.7 (2025-02-14)
+- Tidy Up
+
 # 1.3.6 (2025-02-09)
 # 1.3.5 (2025-02-09)
 # 1.3.4 (2025-02-09)
