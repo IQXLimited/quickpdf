@@ -28,11 +28,11 @@ async function installBrowsers ( ): Promise<void> {
       {
         cwd: resolve ( homedir ( ), ".cache", "puppeteer" )
       },
-      ( err, stdout ) => {
+      ( err, _stdout ) => {
         if ( err ) {
           reject ( err )
         } else {
-          console.log ( stdout )
+          // console.log ( stdout )
           _resolve ( )
         }
       }
