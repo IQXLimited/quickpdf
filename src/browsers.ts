@@ -23,21 +23,36 @@ async function installBrowsers ( ): Promise<void> {
   }
 
   installInProgress = new Promise<void> ( async ( _resolve, reject ) => {
+    await runInstall ( _resolve, reject )
+  } )
+}
+
+async function runInstall ( _resolve: ( ) => void, reject: ( err: Error ) => void, retries = 5 ) {
+  try {
+    await access ( resolve ( homedir ( ), ".cache", "puppeteer", "chrome" ) )
+    await access ( resolve ( homedir ( ), ".cache", "puppeteer", "firefox" ) )
+    resolve ( )
+  } catch {
     exec (
-      "npx --yes @puppeteer/browsers install chrome@stable && npx --yes @puppeteer/browsers install firefox@stable",
+      "npx --yes --timeout=120000 @puppeteer/browsers install chrome@stable && npx --yes @puppeteer/browsers install firefox@stable",
       {
         cwd: resolve ( homedir ( ), ".cache", "puppeteer" )
       },
       ( err, _stdout ) => {
         if ( err ) {
-          reject ( err )
+          if ( retries > 0 ) {
+            console.error ( "Error installing browsers. Retrying..." )
+            setTimeout ( ( ) => runInstall ( _resolve, reject, retries - 1 ), 4000 )
+          } else {
+            reject ( err )
+            process.exit ( 1 )
+          }
         } else {
-          // console.log ( stdout )
           _resolve ( )
         }
       }
     )
-  } )
+  }
 }
 
 async function getChromium ( ): Promise<Browser | null> {
