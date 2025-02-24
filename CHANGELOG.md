@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.4.0 (2025-02-24)
+- ECONNRESET Mitigation
+
 # 1.3.7 (2025-02-14)
 - Tidy Up
 
