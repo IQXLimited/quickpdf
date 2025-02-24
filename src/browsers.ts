@@ -28,31 +28,27 @@ async function installBrowsers ( ): Promise<void> {
 }
 
 async function runInstall ( _resolve: ( ) => void, reject: ( err: Error ) => void, retries = 5 ) {
-  try {
-    await access ( resolve ( homedir ( ), ".cache", "puppeteer", "chrome" ) )
-    await access ( resolve ( homedir ( ), ".cache", "puppeteer", "firefox" ) )
-    resolve ( )
-  } catch {
-    exec (
-      "npx --yes --timeout=120000 @puppeteer/browsers install chrome@stable && npx --yes @puppeteer/browsers install firefox@stable",
-      {
-        cwd: resolve ( homedir ( ), ".cache", "puppeteer" )
-      },
-      ( err, _stdout ) => {
-        if ( err ) {
-          if ( retries > 0 ) {
-            console.error ( "Error installing browsers. Retrying..." )
-            setTimeout ( ( ) => runInstall ( _resolve, reject, retries - 1 ), 4000 )
-          } else {
-            reject ( err )
-            process.exit ( 1 )
-          }
+  exec (
+    `npx --yes --timeout=300000 @puppeteer/browsers install chrome@stable &
+    npx --yes --timeout=300000 @puppeteer/browsers install firefox@stable`,
+    {
+      cwd: resolve ( homedir ( ), ".cache", "puppeteer" )
+    },
+    ( err, _stdout ) => {
+      if ( err ) {
+        if ( retries > 0 ) {
+          const retryDelay = ( 6 - retries ) * 2000 // Exponential backoff (2s, 4s, 6s...)
+          console.error ( "Error installing browsers. Retrying..." )
+          setTimeout ( ( ) => runInstall ( _resolve, reject, retries - 1 ), retryDelay )
         } else {
-          _resolve ( )
+          reject ( err )
+          process.exit ( 1 )
         }
+      } else {
+        _resolve ( )
       }
-    )
-  }
+    }
+  )
 }
 
 async function getChromium ( ): Promise<Browser | null> {
