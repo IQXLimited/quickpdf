@@ -7,6 +7,7 @@ import { HtmlValidate } from "html-validate/node" // Import the HTML validation 
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
 import { checkForLaunching, getChromium } from "../browsers.js"
 import { Browser, Page } from "puppeteer"
+import type { Report } from "html-validate"
 
 export type Options = {
   /**
@@ -24,6 +25,11 @@ export type Options = {
    * @param {number} [scale] - Optional scale of the PDF (default is 1).
    */
   scale?: number
+  /**
+   * - Enable HTML validation
+   * @param {boolean} [validation] - Optional flag to enable HTML validation (default is true).
+   */
+  validation?: boolean
 }
 
 const pagePoolSize = 5
@@ -105,7 +111,9 @@ export const html2pdf = async (
     page = await browser.newPage ( )
   }
 
-  return validator.validateString ( htmlContent ).then ( async ( res ) => {
+  const validation = ( options.validation ?? true ) // Enable HTML validation by default
+  try {
+    const res = validation ? await validator.validateString ( htmlContent ) : { valid: true }
     if ( res.valid ) {
       await page.setContent ( htmlContent, { waitUntil: "load" } ) // Set HTML content on the page and wait for it to load
       const pdf = await page.pdf ( { format: "A4", printBackground: true, scale: options.scale ?? 1 } ) // Generate PDF from the page content
@@ -120,10 +128,10 @@ export const html2pdf = async (
       return Promise.reject ( {
         valid: false,
         count: {
-          errors: res.errorCount,
-          warnings: res.warningCount
+          errors: ( res as Report ).errorCount,
+          warnings: ( res as Report ).warningCount
         },
-        validation: res.results.map ( res => {
+        validation: ( res as Report ).results.map ( res => {
           return {
             file: res.filePath,
             count: {
@@ -142,7 +150,7 @@ export const html2pdf = async (
         } )
       } )
     }
-  } ).finally ( async ( ) => {
+  } finally {
     if ( tempPage ) {
       page.close ( )
     } else {
@@ -153,5 +161,5 @@ export const html2pdf = async (
       } )
       pagePool.push ( page )
     }
-  } )
+  }
 }
