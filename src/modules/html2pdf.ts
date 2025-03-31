@@ -5,9 +5,9 @@
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
-import { checkForLaunching, getChromium } from "../browsers.js"
 import { Browser, Page } from "puppeteer"
 import type { Report } from "html-validate"
+import { launchBrowser } from "../browsers.js"
 
 export type Options = {
   /**
@@ -44,7 +44,7 @@ async function launchPages ( ) {
   }
 
   pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
-    if ( browser ) {
+    if ( browser && browser.connected ) {
       const page = await browser.newPage ( )
       await page.setRequestInterception ( true )
       await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
@@ -95,10 +95,9 @@ export const html2pdf = async (
     htmlContent = await readHtmlFromFilePath ( htmlContent )
   }
 
-  await checkForLaunching ( )
-  browser = await getChromium ( )
+  browser = await launchBrowser ( "chrome" ) // Use the global browser instance
 
-  if ( !browser ) {
+  if ( !browser?.connected ) {
     throw new Error ( "Browser not available" )
   }
 
