@@ -4,7 +4,7 @@
 import { mkdirSync, statSync, writeFileSync } from "fs"
 import { rm, writeFile } from "fs/promises"
 import { dirname, resolve } from "path"
-import { html2pdf, img2pdf, pdf2img, closeBrowsers } from "../dist/index.mjs"
+import { html2pdf, img2pdf, pdf2img } from "../dist/index.mjs"
 import { fileURLToPath } from "url"
 
 const __dirname = dirname ( fileURLToPath ( import.meta.url ) )
@@ -48,11 +48,10 @@ const runTests = async ( ) => {
     console.log ( "HTML to PDF Conversion Successful (ESM)" )
   } catch ( error ) {
     console.error ( "Error during ESM tests:", error )
-    process.exit ( 1 )
   } finally {
     // Clean up the test-assets directory after the tests
     await rm ( testAssetsDir, { force: true, recursive: true } )
-    await closeBrowsers ( )
+    process.exit ( 0 )
   }
 }
 

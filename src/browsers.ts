@@ -1,88 +1,78 @@
-import { exec } from "child_process"
-import { access, mkdir } from "fs/promises"
-import { homedir } from "os"
+import { access } from "fs/promises"
+import { join } from "path"
 import puppeteer, { Browser } from "puppeteer"
-import { resolve } from "path"
 
 let chrome: Browser | null = null
 let firefox: Browser | null = null
-let launchInProgress: Promise<void> = Promise.resolve ( )
-let installInProgress: Promise<void> = Promise.resolve ( )
 
-async function installBrowsers ( ): Promise<void> {
-  try {
-    await access ( homedir ( ) + "/.cache" )
-  } catch {
-    await mkdir ( homedir ( ) + "/.cache" )
+const BROWSER_PATHS = {
+  chrome: {
+    linux: "/usr/bin/google-chrome-stable",
+    mac: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    windows: join ( "C:", "Program Files", "Google", "Chrome", "Application", "chrome.exe" )
+  },
+  firefox: {
+    linux: "/usr/bin/firefox",
+    mac: "/Applications/Firefox.app/Contents/MacOS/firefox",
+    windows: join ( "C:", "Program Files", "Mozilla Firefox", "firefox.exe" )
   }
+}
 
+/// Function to get the operating system
+const getOS = ( ) => {
+  if ( process.platform === "win32" ) return "windows"
+  if ( process.platform === "darwin" ) return "mac"
+  return "linux"
+}
+
+/// Function to check if the browser is installed
+const isBrowserInstalled = async ( browser: "chrome" | "firefox" ) => {
+  const os = getOS ( )
+  const browserPath = BROWSER_PATHS [ browser ] [ os ]
   try {
-    await access ( homedir ( ) + "/.cache/puppeteer" )
+    await access ( browserPath )
+    return true
   } catch {
-    await mkdir ( homedir ( ) + "/.cache/puppeteer" )
+    return false
   }
+}
 
-  installInProgress = new Promise<void> ( async ( _resolve, reject ) => {
-    await runInstall ( _resolve, reject )
+/// Function to launch the browser
+async function launchBrowser ( browserType: "chrome" | "firefox" ) {
+  return new Promise<Browser> ( async ( resolve ) => {
+    if ( browserType === "chrome" && chrome ) return resolve ( chrome )
+    if ( browserType === "firefox" && firefox ) return resolve ( firefox )
+    if ( ( browserType === "chrome" && !chrome ) || ( browserType === "firefox" && !firefox ) ) {
+      const os = getOS ( )
+      const executablePath = BROWSER_PATHS [ browserType ] [ os ]
+
+      if ( !( await isBrowserInstalled ( browserType ) ) ) {
+        console.error ( `${browserType.toUpperCase ( )} is not installed.` )
+        process.exit ( 1 )
+      }
+
+      const browser = await puppeteer.launch ( {
+        browser: browserType,
+        headless: "shell",
+        executablePath,
+        args: [ "--no-sandbox", "--disable-setuid-sandbox" ]
+      } )
+
+      if ( browserType === "chrome" ) {
+        chrome = browser
+      }
+
+      if ( browserType === "firefox" ) {
+        firefox = browser
+      }
+
+      return resolve ( browser )
+    }
+    throw new Error ( `Browser type ${browserType} is not supported` )
   } )
 }
 
-async function runInstall ( _resolve: ( ) => void, reject: ( err: Error ) => void, retries = 5 ) {
-  exec (
-    `npx --yes --timeout=300000 @puppeteer/browsers install chrome@stable &
-    npx --yes --timeout=300000 @puppeteer/browsers install firefox@stable`,
-    {
-      cwd: resolve ( homedir ( ), ".cache", "puppeteer" )
-    },
-    ( err, _stdout ) => {
-      if ( err ) {
-        if ( retries > 0 ) {
-          const retryDelay = ( 6 - retries ) * 2000 // Exponential backoff (2s, 4s, 6s...)
-          console.error ( "Error installing browsers. Retrying..." )
-          setTimeout ( ( ) => runInstall ( _resolve, reject, retries - 1 ), retryDelay )
-        } else {
-          reject ( err )
-          process.exit ( 1 )
-        }
-      } else {
-        _resolve ( )
-      }
-    }
-  )
-}
-
-async function getChromium ( ): Promise<Browser | null> {
-  await installInProgress
-  if ( chrome ) return chrome
-
-  try {
-    chrome = await puppeteer.launch ( {
-      args: [ "--no-sandbox", "--disable-setuid-sandbox" ],  // Useful in certain environments (e.g., Docker)
-    } )
-  } catch ( err ) {
-    console.error ( "Error launching Chromium browser in @iqx-limited/quick-form:", err )
-  }
-
-  return chrome
-}
-
-async function getFirefox ( ): Promise<Browser | null> {
-  await installInProgress
-  if ( firefox ) return firefox
-
-  try {
-    firefox = await puppeteer.launch ( {
-      browser: "firefox", // Use Firefox
-      headless: true, // Set to false if you want to see the browser
-      args: [ "--no-sandbox", "--disable-setuid-sandbox" ],  // Useful in certain environments (e.g., Docker)
-    } )
-  } catch ( err ) {
-    console.error ( "Error launching Firefox browser in @iqx-limited/quick-form:", err )
-  }
-
-  return firefox
-}
-
+// Close browsers when the process exits
 async function closeBrowsers ( ): Promise<void> {
   try {
     if ( chrome ) {
@@ -98,21 +88,12 @@ async function closeBrowsers ( ): Promise<void> {
   }
 }
 
-async function launchBrowsers ( ): Promise<void> {
-  launchInProgress = new Promise<void> ( async ( resolve ) => {
-    await installInProgress
-    await getChromium ( )
-    await getFirefox ( )
-    resolve ( )
-  } )
-}
-
 // Listen for process exit and close browsers
 process.on ( "exit", async ( ) => {
   await closeBrowsers ( )
 } )
 
-// Additional safety to ensure resources are freed if there's an unexpected shutdown
+// Additional safety to ensure resources are freed if there"s an unexpected shutdown
 process.on ( "SIGINT", async ( ) => {
   console.log ( "SIGINT received. Closing browsers..." )
   await closeBrowsers ( )
@@ -123,10 +104,4 @@ process.on ( "SIGTERM", async ( ) => {
   await closeBrowsers ( )
 } )
 
-async function checkForLaunching ( ) {
-  await installInProgress
-  await launchInProgress
-}
-
-// Export the browsers for use in other files
-export { getChromium, getFirefox, closeBrowsers, launchBrowsers, installBrowsers, checkForLaunching }
+export { launchBrowser }
