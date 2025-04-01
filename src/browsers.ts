@@ -2,15 +2,9 @@ import { access } from "fs/promises"
 import { join } from "path"
 import puppeteer, { Browser } from "puppeteer"
 
-let chrome: Browser | null = null
 let firefox: Browser | null = null
 
 const BROWSER_PATHS = {
-  chrome: {
-    linux: "/usr/bin/google-chrome-stable",
-    mac: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    windows: join ( "C:", "Program Files", "Google", "Chrome", "Application", "chrome.exe" )
-  },
   firefox: {
     linux: "/usr/bin/firefox",
     mac: "/Applications/Firefox.app/Contents/MacOS/firefox",
@@ -26,7 +20,7 @@ const getOS = ( ) => {
 }
 
 /// Function to check if the browser is installed
-const isBrowserInstalled = async ( browser: "chrome" | "firefox" ) => {
+const isBrowserInstalled = async ( browser: "firefox" ) => {
   const os = getOS ( )
   const browserPath = BROWSER_PATHS [ browser ] [ os ]
   try {
@@ -38,11 +32,10 @@ const isBrowserInstalled = async ( browser: "chrome" | "firefox" ) => {
 }
 
 /// Function to launch the browser
-async function launchBrowser ( browserType: "chrome" | "firefox" ) {
+async function launchBrowser ( browserType: "firefox" ) {
   return new Promise<Browser> ( async ( resolve ) => {
-    if ( browserType === "chrome" && chrome ) return resolve ( chrome )
     if ( browserType === "firefox" && firefox ) return resolve ( firefox )
-    if ( ( browserType === "chrome" && !chrome ) || ( browserType === "firefox" && !firefox ) ) {
+    if ( browserType === "firefox" && !firefox ) {
       const os = getOS ( )
       const executablePath = BROWSER_PATHS [ browserType ] [ os ]
 
@@ -58,10 +51,6 @@ async function launchBrowser ( browserType: "chrome" | "firefox" ) {
         args: [ "--no-sandbox", "--disable-setuid-sandbox" ]
       } )
 
-      if ( browserType === "chrome" ) {
-        chrome = browser
-      }
-
       if ( browserType === "firefox" ) {
         firefox = browser
       }
@@ -75,10 +64,6 @@ async function launchBrowser ( browserType: "chrome" | "firefox" ) {
 // Close browsers when the process exits
 async function closeBrowsers ( ): Promise<void> {
   try {
-    if ( chrome ) {
-      await ( await chrome ).close ( )
-      chrome = null
-    }
     if ( firefox ) {
       await ( await firefox ).close ( )
       firefox = null

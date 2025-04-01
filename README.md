@@ -14,7 +14,7 @@ This project provides a set of utilities for converting various file formats wit
 ## Requirements
 
 - **Node.js**: This project is built with Node.js and uses ES modules. NodeJS > v20 required.
-- Chrome and Firefox Browser installed on machine.
+- Firefox Browser installed on machine.
 
 # Operations Available in the Package
 

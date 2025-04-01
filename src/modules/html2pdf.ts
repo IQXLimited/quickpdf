@@ -95,7 +95,7 @@ export const html2pdf = async (
     htmlContent = await readHtmlFromFilePath ( htmlContent )
   }
 
-  browser = await launchBrowser ( "chrome" ) // Use the global browser instance
+  browser = await launchBrowser ( "firefox" ) // Use the global browser instance
 
   if ( !browser?.connected ) {
     throw new Error ( "Browser not available" )
@@ -124,7 +124,7 @@ export const html2pdf = async (
       return pdfBuffer // Return the generated PDF as a buffer
     } else {
       // If HTML is invalid, throw a validation error with details
-      return Promise.reject ( {
+      throw {
         valid: false,
         count: {
           errors: ( res as Report ).errorCount,
@@ -147,7 +147,7 @@ export const html2pdf = async (
             } )
           }
         } )
-      } )
+      }
     }
   } finally {
     if ( tempPage ) {

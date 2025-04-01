@@ -1,7 +1,7 @@
 // TODO:
 // 1. Test Sequential Calls to the Same Browser
 
-import { mkdirSync, statSync, writeFileSync } from "fs"
+import { mkdirSync, statSync, writeFileSync, readFileSync } from "fs"
 import { rm, writeFile } from "fs/promises"
 import { dirname, resolve } from "path"
 import { html2pdf, img2pdf, pdf2img } from "../dist/index.mjs"
@@ -43,11 +43,11 @@ const runTests = async ( ) => {
     await writeFile ( resolve ( testAssetsDir, "img-2-pdf.pdf" ), img2pdfResult )
     console.log ( "Image to PDF Conversion Successful (ESM)" )
 
-    const html2pdfResult = await html2pdf ( "<h1>Hello World</h1>" )
-    await writeFile ( resolve ( testAssetsDir, "html-to-pdf.pdf" ), html2pdfResult )
+    const html = await html2pdf ( readFileSync ( resolve ( __dirname, "./test-pdf.html" ), "utf-8" ) )
+    await writeFile ( resolve ( testAssetsDir, "html-to-pdf.pdf" ), html )
     console.log ( "HTML to PDF Conversion Successful (ESM)" )
   } catch ( error ) {
-    console.error ( "Error during ESM tests:", error )
+    console.error ( "Error during ESM tests:", JSON.stringify ( error, null, 2 ) )
   } finally {
     // Clean up the test-assets directory after the tests
     await rm ( testAssetsDir, { force: true, recursive: true } )
