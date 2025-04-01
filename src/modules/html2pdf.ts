@@ -115,7 +115,12 @@ export const html2pdf = async (
     const res = validation ? await validator.validateString ( htmlContent ) : { valid: true }
     if ( res.valid ) {
       await page.setContent ( htmlContent, { waitUntil: "load" } ) // Set HTML content on the page and wait for it to load
-      const pdf = await page.pdf ( { format: "A4", printBackground: true, scale: options.scale ?? 1 } ) // Generate PDF from the page content
+      const pdf = await page.pdf ( {
+        format: "A4",
+        printBackground: true,
+        scale: options.scale ?? 1,
+        preferCSSPageSize: true
+      } ) // Generate PDF from the page content
 
       const pdfBuffer = Buffer.from ( pdf ) // Convert the PDF buffer to a Node.js buffer
       if ( options.base64 ?? false ) {
