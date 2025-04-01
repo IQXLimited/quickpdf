@@ -62,7 +62,6 @@ Validation occurs on the html string passed. The Error Object returned is:
 |-----------|----------|--------------------------------------------------|---------|
 | `base64`  | `boolean` | PDF should be returned as a base64 encoded string.      |false|
 | `rules`  | `object` | Optional custom validation rules for HTML content - see https://html-validate.org/rules/ for more details. Default is all standard rules enabled.      |''|
-| `scale` | `number` | Scale of the PDF | 1 |
 
 ## 2. `img2pdf`
 

@@ -2,6 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.4.5 (2025-04-01)
 # 1.4.4 (2025-04-01)
 - Bug Fix HTML2PDF Scale Size in Firefox
 
