@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.4.6 (2025-04-03)
+- Patch image-size
+
+# 1.4.5 (2025-04-01)
+# 1.4.4 (2025-04-01)
+- Bug Fix HTML2PDF Scale Size in Firefox
+
 # 1.4.3 (2025-04-01)
 - Removed Chrome Browser Dependency
 
