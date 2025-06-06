@@ -4,15 +4,14 @@
 
 import { pathToFileURL } from "url"
 import { resolve } from "path"
-import { Browser, Page, ScreenshotOptions } from "puppeteer"
+import { Page, ScreenshotOptions } from "puppeteer"
 import { writeFile, unlink } from "fs/promises"
-import { launchBrowser } from "../browsers"
+import { firefox, launchBrowser } from "../browsers"
 
 const pagePoolSize = 5
 const RESOURCE_LIMIT = 100 // Maximum allowed resources
 let resourceCount = 0
 let pagePool: Page [ ] = [ ]
-let browser: Browser | null = null
 
 async function launchPages ( ) {
   if ( pagePool.length > 0 ) {
@@ -20,8 +19,8 @@ async function launchPages ( ) {
   }
 
   pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
-    if ( browser ) {
-      const page = await browser.newPage ( )
+    if ( firefox ) {
+      const page = await firefox.newPage ( )
       await page.setRequestInterception ( true )
       await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
       await page.goto ( "about:blank" ) // Load a blank page
@@ -59,6 +58,11 @@ type Options = {
    * @param {"png" | "jpeg" | "webp"} [type] - Optional buffer configuration for the image format (PNG or JPEG).
    */
   type?: "png" | "jpeg" | "webp"
+  /**
+   * - For returning only a specific page.
+   * @param {number} [page] - Optional page number to return. If not specified, all pages are returned.
+   */
+  page?: number
 }
 
 /**
@@ -73,9 +77,9 @@ export const pdf2img = async (
   input: Buffer | string | URL, // Input can be a PDF file (buffer, string path, or URL)
   options: Options = { } // Options for scaling, password decryption, and image format
 ) => {
-  browser = await launchBrowser ( "firefox" )
+  await launchBrowser ( "firefox" )
 
-  if ( !browser?.connected ) {
+  if ( !firefox?.connected ) {
     throw new Error ( "Browser not available" )
   }
 
@@ -85,7 +89,7 @@ export const pdf2img = async (
   let tempPage = false
   if ( !page ) {
     tempPage = true
-    page = await browser.newPage ( )
+    page = await firefox.newPage ( )
   }
 
   let path: string = ""
@@ -126,10 +130,6 @@ export const pdf2img = async (
     }
 
     await page.waitForSelector ( "canvas", { timeout: 5000 } )
-    await page.waitForSelector ( ".loadingIcon", {
-      timeout: 5000,
-      hidden: true
-    } )
 
     const imageBuffers = [ ]
 
@@ -162,44 +162,14 @@ export const pdf2img = async (
       deviceScaleFactor: 1
     } )
 
-    for ( let i = 1; i <= pageCount; i++ ) {
-      // Navigate to each page in the PDF (if necessary, depends on how PDF is rendered)
-      await page.evaluate ( ( pageNum ) => {
-        if ( ( window as any ).PDFViewerApplication ) {
-          ( window as any ).PDFViewerApplication.page = pageNum
-        }
-      }, i )
-
-      const pageBoundingBox = await page.evaluate ( ( pageNum ) => {
-        const pageContainer = document.querySelector ( `.page[data-page-number="${pageNum}"]` )
-        if ( !pageContainer ) throw new Error ( `Page container for page ${pageNum} not found` )
-        const canvas = pageContainer.querySelector ( "canvas" )
-        if ( !canvas ) throw new Error ( `Canvas for page ${pageNum} not found` )
-        const { x, y, width, height } = canvas.getBoundingClientRect ( )
-        return { x, y, width, height }
-      }, i )
-
-      const screenshotOptions: ScreenshotOptions = {
-        fullPage: false, // Capture only the viewport
-        type: options.type ?? "png", // Set the image format
-        clip: {
-          x: pageBoundingBox.x,
-          y: pageBoundingBox.y,
-          width: pageBoundingBox.width,
-          height: pageBoundingBox.height
-        } // Capture only the content
+    if ( options.page ) {
+      if ( options.page < 1 || options.page > pageCount ) {
+        throw new Error ( `Page number ${options.page} is out of bounds. PDF has ${pageCount} pages.` )
       }
-
-      if ( options.type && options.type !== "png" ) {
-        screenshotOptions.quality = options.quality ?? 100
-      }
-
-      try {
-        const uint8array = await page.screenshot ( screenshotOptions )
-        // Take a screenshot of the current page
-        imageBuffers.push ( Buffer.from ( uint8array ) )
-      } catch {
-        throw new Error ( `Failed to render page ${i} of the PDF` )
+      imageBuffers.push ( await renderPage ( page, options.page, options ) )
+    } else {
+      for ( let i = 1; i <= pageCount; i++ ) {
+        imageBuffers.push ( await renderPage ( page, i, options ) )
       }
     }
 
@@ -241,5 +211,54 @@ export const pdf2img = async (
     }
 
     throw error
+  }
+}
+
+const renderPage = async ( page: Page, pageNumber: number, options: Options ): Promise<Buffer> => {
+  // Navigate to each page in the PDF (if necessary, depends on how PDF is rendered)
+  await page.evaluate ( ( pageNum ) => {
+    if ( ( window as any ).PDFViewerApplication ) {
+      ( window as any ).PDFViewerApplication.page = pageNum
+    }
+  }, pageNumber )
+
+  await page.waitForSelector ( `.page[data-page-number="${pageNumber}"]`, { timeout: 5000 } )
+
+  await page.waitForFunction ( ( pageNum ) => {
+    const pageContainer = document.querySelector ( `.page[data-page-number="${pageNum}"]` )
+    if ( !pageContainer ) return true
+    return !pageContainer.querySelector ( ".loadingIcon" )
+  }, {}, pageNumber )
+
+  const pageBoundingBox = await page.evaluate ( ( pageNum ) => {
+    const pageContainer = document.querySelector ( `.page[data-page-number="${pageNum}"]` )
+    if ( !pageContainer ) throw new Error ( `Page container for page ${pageNum} not found` )
+    const canvas = pageContainer.querySelector ( "canvas" )
+    if ( !canvas ) throw new Error ( `Canvas for page ${pageNum} not found` )
+    const { x, y, width, height } = canvas.getBoundingClientRect ( )
+    return { x, y, width, height }
+  }, pageNumber )
+
+  const screenshotOptions: ScreenshotOptions = {
+    fullPage: false, // Capture only the viewport
+    type: options.type ?? "png", // Set the image format
+    clip: {
+      x: pageBoundingBox.x,
+      y: pageBoundingBox.y,
+      width: pageBoundingBox.width,
+      height: pageBoundingBox.height
+    } // Capture only the content
+  }
+
+  if ( options.type && options.type !== "png" ) {
+    screenshotOptions.quality = options.quality ?? 100
+  }
+
+  try {
+    const uint8array = await page.screenshot ( screenshotOptions )
+    // Take a screenshot of the current page
+    return Buffer.from ( uint8array )
+  } catch {
+    throw new Error ( `Failed to render page ${pageNumber} of the PDF` )
   }
 }
