@@ -149,7 +149,7 @@ export const pdf2img = async (
     } )
 
     // Dynamically calculate the size of the PDF content
-    const pdfDimensions = await page.evaluate ( ( ) => {
+    const pdfPage = await page.evaluate ( ( ) => {
       const canvas: any = document.querySelector ( "canvas" ) // Assuming the PDF is rendered on a canvas
       const { width, height } = canvas.getBoundingClientRect ( )
       return { width, height }
@@ -157,8 +157,8 @@ export const pdf2img = async (
 
     // Set the viewport to match the size of the PDF content
     await page.setViewport ( {
-      width: pdfDimensions.width,
-      height: pdfDimensions.height,
+      width: pdfPage.width,
+      height: pdfPage.height,
       deviceScaleFactor: 1
     } )
 
@@ -170,12 +170,14 @@ export const pdf2img = async (
         }
       }, i )
 
-      // Get the bounding box of the .page element
-      const pageBoundingBox = await page.evaluate ( ( ) => {
-        const pageElement: any = document.querySelector ( "canvas" )
-        const { x, y, width, height } = pageElement.getBoundingClientRect ( )
+      const pageBoundingBox = await page.evaluate ( ( pageNum ) => {
+        const pageContainer = document.querySelector ( `.page[data-page-number="${pageNum}"]` )
+        if ( !pageContainer ) throw new Error ( `Page container for page ${pageNum} not found` )
+        const canvas = pageContainer.querySelector ( "canvas" )
+        if ( !canvas ) throw new Error ( `Canvas for page ${pageNum} not found` )
+        const { x, y, width, height } = canvas.getBoundingClientRect ( )
         return { x, y, width, height }
-      } )
+      }, i )
 
       const screenshotOptions: ScreenshotOptions = {
         fullPage: false, // Capture only the viewport
@@ -192,10 +194,13 @@ export const pdf2img = async (
         screenshotOptions.quality = options.quality ?? 100
       }
 
-      const uint8array = await page.screenshot ( screenshotOptions )
-
-      // Take a screenshot of the current page
-      imageBuffers.push ( Buffer.from ( uint8array ) )
+      try {
+        const uint8array = await page.screenshot ( screenshotOptions )
+        // Take a screenshot of the current page
+        imageBuffers.push ( Buffer.from ( uint8array ) )
+      } catch {
+        throw new Error ( `Failed to render page ${i} of the PDF` )
+      }
     }
 
     if ( tempFile ) {

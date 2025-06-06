@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.5.0 (2025-06-06)
+- Fixed an issue with rendering multiple pages in pdf2img.
+
+# 1.4.7 (2025-06-05)
+- Patched Versions.
+
 # 1.4.6 (2025-04-03)
 - Patch image-size
 
