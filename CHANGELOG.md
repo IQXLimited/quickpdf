@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.5.1 (2025-06-06)
+- Change wait for loading icon to per page.
+- Launch Browser before first call.
+
 # 1.5.0 (2025-06-06)
 - Fixed an issue with rendering multiple pages in pdf2img.
 
