@@ -62,6 +62,7 @@ Validation occurs on the html string passed. The Error Object returned is:
 |-----------|----------|--------------------------------------------------|---------|
 | `base64`  | `boolean` | PDF should be returned as a base64 encoded string.      |false|
 | `rules`  | `object` | Optional custom validation rules for HTML content - see https://html-validate.org/rules/ for more details. Default is all standard rules enabled.      |''|
+| `closeBrowser` | `boolean` | Optional flag to close the browser after conversion. | false |
 
 ## 2. `img2pdf`
 
@@ -84,6 +85,7 @@ img2pdf(input: Buffer | string | URL, options: Options = {})
 | `header`  | `string` | Optional header text to include in the PDF.      |undefined|
 | `footer`  | `string` | Optional footer text to include in the PDF.      |undefined|
 | `fontSize` | `number` | Font Size of the header or footer | 10 |
+| `closeBrowser` | `boolean` | Optional flag to close the browser after conversion. | false |
 
 ## 3. `pdf2img`
 
@@ -106,3 +108,15 @@ pdf2img(input: Buffer | string | URL, options: Options = {})
 | `quality`   | `number`                                                             | Quality for rendering the PDF pages, not applicable for PNG. Default is 100. |
 | `password`| `string`                                                             | Optional password for decrypting password-protected PDFs. |
 | `type`    | `string`                                                             | The mime type to output - "png" | "jpeg" | "webp". Default is "png". |
+| `page`    | `number`                                                             | Optional page number to return. If not specified, all pages are returned. |
+| `closeBrowser` | `boolean`                                                       | Optional flag to close the browser after conversion. Default is false. |
+
+## 3. `browsers`
+
+### Function Signature:
+```typescript
+launchBrowser(browserType: "firefox", wsURL: string = "")
+closeBrowser()
+```
+
+`closeBrowser()` will close the running instance of a browser if local, if remote the browser will disconnect. On calling a module without a running instance, the browser will be created automatically. Pass the closeBrowser parameter to your given module to call `closeBrowser()` on completion.

@@ -3,6 +3,7 @@ import { join } from "path"
 import puppeteer, { Browser } from "puppeteer"
 
 let firefox: Browser | null = null
+let isRemoteBrowser = false
 
 const BROWSER_PATHS = {
   firefox: {
@@ -34,7 +35,7 @@ const isBrowserInstalled = async ( browser: "firefox" ) => {
 /// Function to launch the browser
 let launching: Promise<Browser> | null = null
 
-async function launchBrowser ( browserType: "firefox" ) {
+async function launchBrowser ( browserType: "firefox", wsURL: string = "" ): Promise<Browser> {
   if ( browserType !== "firefox" ) {
     throw new Error ( `Browser type ${browserType} is not supported` )
   }
@@ -43,36 +44,52 @@ async function launchBrowser ( browserType: "firefox" ) {
   if ( launching ) return launching
 
   launching = ( async ( ) => {
-    const os = getOS ( )
-    const executablePath = BROWSER_PATHS [ browserType ] [ os ]
-
     if ( !( await isBrowserInstalled ( browserType ) ) ) {
       console.error ( `${browserType.toUpperCase ( )} is not installed.` )
       process.exit ( 1 )
     }
 
-    const browser = await puppeteer.launch ( {
-      browser: browserType,
-      headless: "shell",
-      executablePath,
-      args: [ "--no-sandbox", "--disable-setuid-sandbox" ]
-    } )
+    isRemoteBrowser = !!wsURL
+    if ( wsURL ) {
+      console.log ( `Launching remote ${browserType.toUpperCase ( )} browser...` )
+      firefox = await puppeteer.connect ( {
+        browserWSEndpoint: wsURL,
+        acceptInsecureCerts: true
+      } )
+    } else {
+      console.log ( `Launching local ${browserType.toUpperCase ( )} browser...` )
+      firefox = await puppeteer.launch ( {
+        browser: browserType,
+        headless: "shell",
+        executablePath: BROWSER_PATHS [ browserType ] [ getOS ( ) ],
+        args: [ "--no-sandbox", "--disable-setuid-sandbox" ]
+      } )
+    }
 
-    firefox = browser
     launching = null
-    return browser
+
+    firefox.on ( "disconnected", ( ) => {
+      firefox = null
+    } )
+    return firefox
   } ) ( )
 
   return launching
 }
 
 // Close browsers when the process exits
-async function closeBrowsers ( ): Promise<void> {
+async function closeBrowser ( ): Promise<void> {
   try {
     if ( firefox ) {
-      await ( await firefox ).close ( )
-      firefox = null
+      if ( firefox.connected ) {
+        await firefox.disconnect ( )
+      }
+      if ( !isRemoteBrowser ) {
+        await firefox.close ( )
+      }
     }
+    console.log ( "Firefox browser closed successfully." )
+    firefox = null
   } catch ( err ) {
     console.error ( "Error closing browsers in @iqx-limited/quick-form:", err )
   }
@@ -80,20 +97,24 @@ async function closeBrowsers ( ): Promise<void> {
 
 // Listen for process exit and close browsers
 process.on ( "exit", async ( ) => {
-  await closeBrowsers ( )
+  await closeBrowser ( )
 } )
 
 // Additional safety to ensure resources are freed if there"s an unexpected shutdown
 process.on ( "SIGINT", async ( ) => {
   console.log ( "SIGINT received. Closing browsers..." )
-  await closeBrowsers ( )
+  await closeBrowser ( )
 } )
 
 process.on ( "SIGTERM", async ( ) => {
   console.log ( "SIGTERM received. Closing browsers..." )
-  await closeBrowsers ( )
+  await closeBrowser ( )
 } )
 
-launchBrowser ( "firefox" )
+async function initBrowser ( ) {
+  if ( !firefox ) {
+    await launchBrowser ( "firefox" )
+  }
+}
 
-export { launchBrowser, firefox }
+export { launchBrowser, initBrowser, closeBrowser }

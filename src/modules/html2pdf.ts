@@ -5,9 +5,9 @@
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
-import { Page } from "puppeteer"
+import { Browser, Page } from "puppeteer"
 import type { Report } from "html-validate"
-import { firefox, launchBrowser } from "../browsers.js"
+import { closeBrowser, launchBrowser } from "../browsers.js"
 
 export type Options = {
   /**
@@ -25,6 +25,11 @@ export type Options = {
    * @param {boolean} [validation] - Optional flag to enable HTML validation (default is true).
    */
   validation?: boolean
+  /**
+   * - If true, the browser will be closed after conversion.
+   * @param {boolean} [closeBrowser] - Optional flag to close the browser after conversion. Default is false.
+   */
+  closeBrowser?: boolean
 }
 
 const pagePoolSize = 5
@@ -32,7 +37,7 @@ const RESOURCE_LIMIT = 100 // Maximum allowed resources
 let resourceCount = 0
 let pagePool: Page [ ] = [ ]
 
-async function launchPages ( ) {
+async function launchPages ( firefox: Browser ) {
   if ( pagePool.length > 0 ) {
     return pagePool
   }
@@ -71,7 +76,7 @@ export const html2pdf = async (
   input: string | URL, // HTML input as a string, URL, or file path
   options: Options = { } // Optional flag to return the PDF as a base64 string
 ) => {
-  await launchBrowser ( "firefox" ) // Ensure the Firefox browser is launched
+  const firefox = await launchBrowser ( "firefox" ) // Ensure the Firefox browser is launched
 
   const validator = new HtmlValidate ( options.rules ?? {
     extends: [ "html-validate:standard" ], // Use the standard HTML validation rules
@@ -95,7 +100,7 @@ export const html2pdf = async (
     throw new Error ( "Browser not available" )
   }
 
-  const pagePool = await launchPages ( )
+  const pagePool = await launchPages ( firefox )
 
   let page = pagePool.pop ( )
   let tempPage = false
@@ -156,6 +161,9 @@ export const html2pdf = async (
         deviceScaleFactor: 1
       } )
       pagePool.push ( page )
+    }
+    if ( options.closeBrowser ) {
+      await closeBrowser ( ) // Close the browser if specified in options
     }
   }
 }

@@ -4,16 +4,16 @@
 
 import { pathToFileURL } from "url"
 import { resolve } from "path"
-import { Page, ScreenshotOptions } from "puppeteer"
+import { Browser, Page, ScreenshotOptions } from "puppeteer"
 import { writeFile, unlink } from "fs/promises"
-import { firefox, launchBrowser } from "../browsers"
+import { closeBrowser, launchBrowser } from "../browsers"
 
 const pagePoolSize = 5
 const RESOURCE_LIMIT = 100 // Maximum allowed resources
 let resourceCount = 0
 let pagePool: Page [ ] = [ ]
 
-async function launchPages ( ) {
+async function launchPages ( firefox: Browser ) {
   if ( pagePool.length > 0 ) {
     return pagePool
   }
@@ -63,6 +63,11 @@ type Options = {
    * @param {number} [page] - Optional page number to return. If not specified, all pages are returned.
    */
   page?: number
+  /**
+   * - If true, the browser will be closed after conversion.
+   * @param {boolean} [closeBrowser] - Optional flag to close the browser after conversion. Default is false.
+   */
+  closeBrowser?: boolean
 }
 
 /**
@@ -77,13 +82,13 @@ export const pdf2img = async (
   input: Buffer | string | URL, // Input can be a PDF file (buffer, string path, or URL)
   options: Options = { } // Options for scaling, password decryption, and image format
 ) => {
-  await launchBrowser ( "firefox" )
+  const firefox = await launchBrowser ( "firefox" )
 
   if ( !firefox?.connected ) {
     throw new Error ( "Browser not available" )
   }
 
-  const pagePool = await launchPages ( )
+  const pagePool = await launchPages ( firefox )
 
   let page = pagePool.pop ( )
   let tempPage = false
@@ -211,6 +216,10 @@ export const pdf2img = async (
     }
 
     throw error
+  } finally {
+    if ( options.closeBrowser ) {
+      await closeBrowser ( ) // Close the browser if specified in options
+    }
   }
 }
 

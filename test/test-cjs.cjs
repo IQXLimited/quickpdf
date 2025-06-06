@@ -1,7 +1,7 @@
 // TODO:
 // 1. Test Sequential Calls to the Same Browser
 
-const { html2pdf, img2pdf, pdf2img } = require ( "../dist/index.cjs" )
+const { html2pdf, img2pdf, pdf2img, launchBrowser } = require ( "../dist/index.cjs" )
 const { mkdirSync, statSync, readFileSync } = require ( "fs" )
 const { rm, writeFile } = require ( "fs/promises" )
 const { resolve } = require ( "path" )
@@ -24,6 +24,7 @@ if ( !isDirectory ( testAssetsDir ) ) {
 
 const runTests = async ( ) => {
   try {
+    await launchBrowser ( "firefox", "ws://172.21.100.71:3000/devtools/browser/307fe387-60f6-41ed-b1ab-eb1d27400077" )
     const pdf = "https://www.orimi.com/pdf-test.pdf"
 
     const pdf2imgResult = await pdf2img ( pdf )
