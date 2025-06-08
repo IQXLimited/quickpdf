@@ -14,7 +14,7 @@ This project provides a set of utilities for converting various file formats wit
 ## Requirements
 
 - **Node.js**: This project is built with Node.js and uses ES modules. NodeJS > v20 required.
-- Firefox Browser installed on machine.
+- Firefox or Chrome (Module Dependant) either remotely or on your machine.
 
 # Operations Available in the Package
 
@@ -89,6 +89,8 @@ img2pdf(input: Buffer | string | URL, options: Options = {})
 
 ## 3. `pdf2img`
 
+FIREFOX is a hard requirement. Chrome will not work with this module.
+
 ### Function Signature:
 ```typescript
 pdf2img(input: Buffer | string | URL, options: Options = {})
@@ -115,8 +117,12 @@ pdf2img(input: Buffer | string | URL, options: Options = {})
 
 ### Function Signature:
 ```typescript
-launchBrowser(browserType: "firefox", wsURL: string = "")
+launchBrowser(browserType?: "firefox" | "chrome", wsURL?: string)
 closeBrowser()
 ```
 
-`closeBrowser()` will close the running instance of a browser if local, if remote the browser will disconnect. On calling a module without a running instance, the browser will be created automatically. Pass the closeBrowser parameter to your given module to call `closeBrowser()` on completion.
+If no browserType is specified, the first existing instance of a browser will be returned - starting with firefox. If no browser is found, it will try and retrieve the first instance of a browser locally. Where this results in no browser an error will be thrown.
+If a browserType is specified and no cached browser of that type is found, the browser will attempt to launch from your local machine. Include a wsURL to connect to a remote browser instance. An error will be thrown if not found.
+
+`closeBrowser()` will close all running browsers, if remote the browser will disconnect.
+On calling a module without a running instance, the browser will be created automatically - starting with firefox. Pass the closeBrowser parameter to your given module to call `closeBrowser()` on completion.

@@ -4,7 +4,7 @@
 
 import { pathToFileURL } from "url"
 import { resolve } from "path"
-import { Browser, Page, ScreenshotOptions } from "puppeteer"
+import { Browser, Page, ScreenshotOptions } from "puppeteer-core"
 import { writeFile, unlink } from "fs/promises"
 import { closeBrowser, launchBrowser } from "../browsers"
 
@@ -82,19 +82,19 @@ export const pdf2img = async (
   input: Buffer | string | URL, // Input can be a PDF file (buffer, string path, or URL)
   options: Options = { } // Options for scaling, password decryption, and image format
 ) => {
-  const firefox = await launchBrowser ( "firefox" )
+  const browser = await launchBrowser ( "firefox" )
 
-  if ( !firefox?.connected ) {
+  if ( !browser?.connected ) {
     throw new Error ( "Browser not available" )
   }
 
-  const pagePool = await launchPages ( firefox )
+  const pagePool = await launchPages ( browser )
 
   let page = pagePool.pop ( )
   let tempPage = false
   if ( !page ) {
     tempPage = true
-    page = await firefox.newPage ( )
+    page = await browser.newPage ( )
   }
 
   let path: string = ""

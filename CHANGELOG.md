@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 # 1.6.0 (2025-06-06)
 - New Feature: Add compatability with remote browser instances.
 - Exposed browser controls to the end user.
+- Add chrome support for all modules except pdf2img.
+- Chrome or Firefox must be either installed on machine or remote, so only puppeteer-core is required.
 
 # 1.5.1 (2025-06-06)
 - Change wait for loading icon to per page.

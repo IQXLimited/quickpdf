@@ -5,7 +5,7 @@
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
-import { Browser, Page } from "puppeteer"
+import { Browser, Page } from "puppeteer-core"
 import type { Report } from "html-validate"
 import { closeBrowser, launchBrowser } from "../browsers.js"
 
@@ -37,14 +37,14 @@ const RESOURCE_LIMIT = 100 // Maximum allowed resources
 let resourceCount = 0
 let pagePool: Page [ ] = [ ]
 
-async function launchPages ( firefox: Browser ) {
+async function launchPages ( browser: Browser ) {
   if ( pagePool.length > 0 ) {
     return pagePool
   }
 
   pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
-    if ( firefox && firefox.connected ) {
-      const page = await firefox.newPage ( )
+    if ( browser?.connected ) {
+      const page = await browser.newPage ( )
       await page.setRequestInterception ( true )
       await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
       await page.goto ( "about:blank" ) // Load a blank page
@@ -76,7 +76,7 @@ export const html2pdf = async (
   input: string | URL, // HTML input as a string, URL, or file path
   options: Options = { } // Optional flag to return the PDF as a base64 string
 ) => {
-  const firefox = await launchBrowser ( "firefox" ) // Ensure the Firefox browser is launched
+  const browser = await launchBrowser ( ) // Ensure the Firefox browser is launched
 
   const validator = new HtmlValidate ( options.rules ?? {
     extends: [ "html-validate:standard" ], // Use the standard HTML validation rules
@@ -96,17 +96,17 @@ export const html2pdf = async (
     htmlContent = await readHtmlFromFilePath ( htmlContent )
   }
 
-  if ( !firefox?.connected ) {
+  if ( !browser?.connected ) {
     throw new Error ( "Browser not available" )
   }
 
-  const pagePool = await launchPages ( firefox )
+  const pagePool = await launchPages ( browser )
 
   let page = pagePool.pop ( )
   let tempPage = false
   if ( !page ) {
     tempPage = true
-    page = await firefox.newPage ( )
+    page = await browser.newPage ( )
   }
 
   const validation = ( options.validation ?? true ) // Enable HTML validation by default

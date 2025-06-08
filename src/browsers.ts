@@ -1,11 +1,17 @@
 import { access } from "fs/promises"
 import { join } from "path"
-import puppeteer, { Browser } from "puppeteer"
+import puppeteer, { Browser } from "puppeteer-core"
 
 let firefox: Browser | null = null
+let chrome: Browser | null = null
 let isRemoteBrowser = false
 
 const BROWSER_PATHS = {
+  chrome: {
+    linux: "/usr/bin/google-chrome",
+    mac: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    windows: join ( "C:", "Program Files", "Google", "Chrome", "Application", "chrome.exe" )
+  },
   firefox: {
     linux: "/usr/bin/firefox",
     mac: "/Applications/Firefox.app/Contents/MacOS/firefox",
@@ -21,7 +27,7 @@ const getOS = ( ) => {
 }
 
 /// Function to check if the browser is installed
-const isBrowserInstalled = async ( browser: "firefox" ) => {
+const isBrowserInstalled = async ( browser: "firefox" | "chrome" ) => {
   const os = getOS ( )
   const browserPath = BROWSER_PATHS [ browser ] [ os ]
   try {
@@ -35,30 +41,53 @@ const isBrowserInstalled = async ( browser: "firefox" ) => {
 /// Function to launch the browser
 let launching: Promise<Browser> | null = null
 
-async function launchBrowser ( browserType: "firefox", wsURL: string = "" ): Promise<Browser> {
-  if ( browserType !== "firefox" ) {
-    throw new Error ( `Browser type ${browserType} is not supported` )
+async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: string ): Promise<Browser> {
+  if ( !browserType ) {
+    if ( firefox?.connected ) {
+      return firefox
+    } else if ( chrome?.connected ) {
+      return chrome
+    } else {
+      const [ firefox, chrome ] = await Promise.all ( [
+        launchBrowser ( "firefox", wsURL ).catch ( ( ) => null ),
+        launchBrowser ( "chrome", wsURL ).catch ( ( ) => null )
+      ] )
+      if ( firefox ) {
+        return firefox
+      } else if ( chrome ) {
+        return chrome
+      }
+      throw new Error ( "No browser launched yet" )
+    }
   }
 
-  if ( firefox ) return firefox
-  if ( launching ) return launching
+  if ( browserType === "firefox" && firefox?.connected ) {
+    return firefox
+  } else if ( browserType === "chrome" && chrome?.connected ) {
+    return chrome
+  }
+
+  if ( !( await isBrowserInstalled ( browserType ) ) ) {
+    throw new Error ( `${browserType.toUpperCase ( )} is not installed.` )
+  }
+
+  if ( launching ) {
+    await launching
+    return launchBrowser ( browserType, wsURL )
+  }
 
   launching = ( async ( ) => {
-    if ( !( await isBrowserInstalled ( browserType ) ) ) {
-      console.error ( `${browserType.toUpperCase ( )} is not installed.` )
-      process.exit ( 1 )
-    }
-
     isRemoteBrowser = !!wsURL
+    let browser: Browser
     if ( wsURL ) {
       console.log ( `Launching remote ${browserType.toUpperCase ( )} browser...` )
-      firefox = await puppeteer.connect ( {
+      browser = await puppeteer.connect ( {
         browserWSEndpoint: wsURL,
         acceptInsecureCerts: true
       } )
     } else {
       console.log ( `Launching local ${browserType.toUpperCase ( )} browser...` )
-      firefox = await puppeteer.launch ( {
+      browser = await puppeteer.launch ( {
         browser: browserType,
         headless: "shell",
         executablePath: BROWSER_PATHS [ browserType ] [ getOS ( ) ],
@@ -66,12 +95,20 @@ async function launchBrowser ( browserType: "firefox", wsURL: string = "" ): Pro
       } )
     }
 
-    launching = null
+    if ( browserType === "chrome" ) {
+      chrome = browser
+      chrome.on ( "disconnected", ( ) => {
+        chrome = null
+      } )
+    } else {
+      firefox = browser
+      firefox.on ( "disconnected", ( ) => {
+        firefox = null
+      } )
+    }
 
-    firefox.on ( "disconnected", ( ) => {
-      firefox = null
-    } )
-    return firefox
+    launching = null
+    return browser
   } ) ( )
 
   return launching
@@ -80,15 +117,23 @@ async function launchBrowser ( browserType: "firefox", wsURL: string = "" ): Pro
 // Close browsers when the process exits
 async function closeBrowser ( ): Promise<void> {
   try {
-    if ( firefox ) {
-      if ( firefox.connected ) {
-        await firefox.disconnect ( )
+    if ( chrome?.connected ) {
+      await chrome.disconnect ( )
+    }
+    if ( firefox?.connected ) {
+      await firefox.disconnect ( )
+    }
+
+    if ( !isRemoteBrowser ) {
+      if ( chrome ) {
+        await chrome.close ( )
       }
-      if ( !isRemoteBrowser ) {
+      if ( firefox ) {
         await firefox.close ( )
       }
     }
-    console.log ( "Firefox browser closed successfully." )
+    console.log ( "Browser closed successfully." )
+    chrome = null
     firefox = null
   } catch ( err ) {
     console.error ( "Error closing browsers in @iqx-limited/quick-form:", err )
@@ -111,10 +156,4 @@ process.on ( "SIGTERM", async ( ) => {
   await closeBrowser ( )
 } )
 
-async function initBrowser ( ) {
-  if ( !firefox ) {
-    await launchBrowser ( "firefox" )
-  }
-}
-
-export { launchBrowser, initBrowser, closeBrowser }
+export { launchBrowser, closeBrowser }
