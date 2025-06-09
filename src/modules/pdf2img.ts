@@ -4,42 +4,9 @@
 
 import { pathToFileURL } from "url"
 import { resolve } from "path"
-import { Browser, Page, ScreenshotOptions } from "puppeteer-core"
+import { Page, ScreenshotOptions } from "puppeteer-core"
 import { writeFile, unlink } from "fs/promises"
-import { closeBrowser, launchBrowser } from "../browsers"
-
-const pagePoolSize = 5
-const RESOURCE_LIMIT = 100 // Maximum allowed resources
-let resourceCount = 0
-let pagePool: Page [ ] = [ ]
-
-async function launchPages ( firefox: Browser ) {
-  if ( pagePool.length > 0 ) {
-    return pagePool
-  }
-
-  pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
-    if ( firefox ) {
-      const page = await firefox.newPage ( )
-      await page.setRequestInterception ( true )
-      await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
-      await page.goto ( "about:blank" ) // Load a blank page
-      page.on ( "request", request => {
-        resourceCount++
-        if ( resourceCount > RESOURCE_LIMIT ) {
-          page.reload ( ) // Reload the page when limit is exceeded
-          resourceCount = 0 // Reset the counter
-        } else {
-          request.continue ( )
-        }
-      } )
-      return page
-    } else {
-      throw new Error ( "Browser not available" )
-    }
-  } ) )
-  return pagePool
-}
+import { closeBrowser, getPage, launchBrowser, restorePage } from "../browsers"
 
 // Options type for customizing the image conversion process
 type Options = {
@@ -82,20 +49,13 @@ export const pdf2img = async (
   input: Buffer | string | URL, // Input can be a PDF file (buffer, string path, or URL)
   options: Options = { } // Options for scaling, password decryption, and image format
 ) => {
-  const browser = await launchBrowser ( "firefox" )
+  const { browser } = await launchBrowser ( "firefox" )
 
   if ( !browser?.connected ) {
     throw new Error ( "Browser not available" )
   }
 
-  const pagePool = await launchPages ( browser )
-
-  let page = pagePool.pop ( )
-  let tempPage = false
-  if ( !page ) {
-    tempPage = true
-    page = await browser.newPage ( )
-  }
+  const page = await getPage ( "firefox" )
 
   let path: string = ""
   let address: string = ""
@@ -182,16 +142,7 @@ export const pdf2img = async (
       await unlink ( path )
     }
 
-    if ( tempPage ) {
-      page.close ( )
-    } else {
-      await page.setViewport ( {
-        width: 800,
-        height: 600,
-        deviceScaleFactor: 1
-      } )
-      pagePool.push ( page )
-    }
+    await restorePage ( "firefox", page )
 
     // Return the rendered pages and metadata
     return {
@@ -204,16 +155,7 @@ export const pdf2img = async (
       await unlink ( path )
     }
 
-    if ( tempPage ) {
-      page.close ( )
-    } else {
-      await page.setViewport ( {
-        width: 800,
-        height: 600,
-        deviceScaleFactor: 1
-      } )
-      pagePool.push ( page )
-    }
+    await restorePage ( "firefox", page )
 
     throw error
   } finally {

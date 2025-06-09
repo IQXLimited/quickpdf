@@ -5,9 +5,8 @@
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
-import { Browser, Page } from "puppeteer-core"
 import type { Report } from "html-validate"
-import { closeBrowser, launchBrowser } from "../browsers.js"
+import { closeBrowser, launchBrowser, getPage, restorePage } from "../browsers.js"
 
 export type Options = {
   /**
@@ -32,39 +31,6 @@ export type Options = {
   closeBrowser?: boolean
 }
 
-const pagePoolSize = 5
-const RESOURCE_LIMIT = 100 // Maximum allowed resources
-let resourceCount = 0
-let pagePool: Page [ ] = [ ]
-
-async function launchPages ( browser: Browser ) {
-  if ( pagePool.length > 0 ) {
-    return pagePool
-  }
-
-  pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
-    if ( browser?.connected ) {
-      const page = await browser.newPage ( )
-      await page.setRequestInterception ( true )
-      await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
-      await page.goto ( "about:blank" ) // Load a blank page
-      page.on ( "request", request => {
-        resourceCount++
-        if ( resourceCount > RESOURCE_LIMIT ) {
-          page.reload ( ) // Reload the page when limit is exceeded
-          resourceCount = 0 // Reset the counter
-        } else {
-          request.continue ( )
-        }
-      } )
-      return page
-    } else {
-      throw new Error ( "Browser not available" )
-    }
-  } ) )
-  return pagePool
-}
-
 /**
  * Converts an HTML string or URL to a PDF.
  *
@@ -76,7 +42,7 @@ export const html2pdf = async (
   input: string | URL, // HTML input as a string, URL, or file path
   options: Options = { } // Optional flag to return the PDF as a base64 string
 ) => {
-  const browser = await launchBrowser ( ) // Ensure the Firefox browser is launched
+  const { browser, type } = await launchBrowser ( ) // Ensure the Firefox browser is launched
 
   const validator = new HtmlValidate ( options.rules ?? {
     extends: [ "html-validate:standard" ], // Use the standard HTML validation rules
@@ -100,14 +66,7 @@ export const html2pdf = async (
     throw new Error ( "Browser not available" )
   }
 
-  const pagePool = await launchPages ( browser )
-
-  let page = pagePool.pop ( )
-  let tempPage = false
-  if ( !page ) {
-    tempPage = true
-    page = await browser.newPage ( )
-  }
+  const page = await getPage ( type )
 
   const validation = ( options.validation ?? true ) // Enable HTML validation by default
   try {
@@ -152,16 +111,7 @@ export const html2pdf = async (
       }
     }
   } finally {
-    if ( tempPage ) {
-      page.close ( )
-    } else {
-      await page.setViewport ( {
-        width: 800,
-        height: 600,
-        deviceScaleFactor: 1
-      } )
-      pagePool.push ( page )
-    }
+    await restorePage ( type, page )
     if ( options.closeBrowser ) {
       await closeBrowser ( ) // Close the browser if specified in options
     }

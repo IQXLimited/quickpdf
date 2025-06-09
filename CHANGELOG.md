@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.6.1 (2025-06-09)
+- Run Launch Pages as Part of Launch Browser
+- The return type of launchBrowser updated to reflect above.
+
 # 1.6.0 (2025-06-06)
 - New Feature: Add compatability with remote browser instances.
 - Exposed browser controls to the end user.

@@ -117,7 +117,7 @@ pdf2img(input: Buffer | string | URL, options: Options = {})
 
 ### Function Signature:
 ```typescript
-launchBrowser(browserType?: "firefox" | "chrome", wsURL?: string)
+launchBrowser(browserType?: "firefox" | "chrome", wsURL?: string): { browser: Browser; type: string }
 closeBrowser()
 ```
 

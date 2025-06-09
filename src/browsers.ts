@@ -1,6 +1,6 @@
 import { access } from "fs/promises"
 import { join } from "path"
-import puppeteer, { Browser } from "puppeteer-core"
+import puppeteer, { Browser, Page } from "puppeteer-core"
 
 let firefox: Browser | null = null
 let chrome: Browser | null = null
@@ -39,14 +39,88 @@ const isBrowserInstalled = async ( browser: "firefox" | "chrome" ) => {
 }
 
 /// Function to launch the browser
-let launching: Promise<Browser> | null = null
+let launching: Promise<{
+  browser: Browser
+  type: "firefox" | "chrome"
+}> | null = null
+const pagePoolSize = 5
+const RESOURCE_LIMIT = 100 // Maximum allowed resources
+let resourceCount = 0
 
-async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: string ): Promise<Browser> {
+let firefoxPagePool: Page [ ] = [ ]
+let chromePagePool: Page [ ] = [ ]
+
+async function launchPages ( browser: Browser | null, type: "chrome" | "firefox" ) {
+  let pool = type === "chrome" ? chromePagePool : firefoxPagePool
+
+  if ( !browser ) {
+    throw new Error ( "Browser Not Launched" )
+  }
+
+  if ( pool.length > 0 ) {
+    return pool
+  }
+
+  pool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
+    if ( browser?.connected ) {
+      const page = await browser.newPage ( )
+      await page.setRequestInterception ( true )
+      await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
+      await page.goto ( "about:blank" ) // Load a blank page
+      page.on ( "request", request => {
+        resourceCount++
+        if ( resourceCount > RESOURCE_LIMIT ) {
+          page.reload ( ) // Reload the page when limit is exceeded
+          resourceCount = 0 // Reset the counter
+        } else {
+          request.continue ( )
+        }
+      } )
+      return page
+    } else {
+      throw new Error ( "Browser not available" )
+    }
+  } ) )
+
+  if ( type === "chrome" ) {
+    chromePagePool = pool
+  } else {
+    firefoxPagePool = pool
+  }
+
+  return pool
+}
+
+export async function getPage ( type: "chrome" | "firefox" ): Promise<Page> {
+  await launchPages ( type === "chrome" ? chrome : firefox, type )
+  const pool = type === "chrome" ? chromePagePool : firefoxPagePool
+  const page = pool.pop ( )
+  if ( !page ) throw new Error ( "Page pool unexpectedly empty" )
+  return page
+}
+
+export async function restorePage ( type: "chrome" | "firefox", page: Page ) {
+  await page.setViewport ( {
+    width: 800,
+    height: 600,
+    deviceScaleFactor: 1
+  } )
+  if ( type === "chrome" ) {
+    chromePagePool.push ( page )
+  } else if ( type === "firefox" ) {
+    firefoxPagePool.push ( page )
+  }
+}
+
+async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: string ): Promise<{
+  browser: Browser
+  type: "chrome" | "firefox"
+}> {
   if ( !browserType ) {
     if ( firefox?.connected ) {
-      return firefox
+      return { browser: firefox, type: "firefox" }
     } else if ( chrome?.connected ) {
-      return chrome
+      return { browser: chrome, type: "chrome" }
     } else {
       const [ firefox, chrome ] = await Promise.all ( [
         launchBrowser ( "firefox", wsURL ).catch ( ( ) => null ),
@@ -62,9 +136,15 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
   }
 
   if ( browserType === "firefox" && firefox?.connected ) {
-    return firefox
+    return {
+      browser: firefox,
+      type: "firefox"
+    }
   } else if ( browserType === "chrome" && chrome?.connected ) {
-    return chrome
+    return {
+      browser: chrome,
+      type: "chrome"
+    }
   }
 
   if ( !( await isBrowserInstalled ( browserType ) ) ) {
@@ -95,6 +175,8 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
       } )
     }
 
+    await launchPages ( browser, browserType )
+
     if ( browserType === "chrome" ) {
       chrome = browser
       chrome.on ( "disconnected", ( ) => {
@@ -108,7 +190,10 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
     }
 
     launching = null
-    return browser
+    return {
+      browser,
+      type: browserType
+    }
   } ) ( )
 
   return launching
