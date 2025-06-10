@@ -1,6 +1,3 @@
-// TODO:
-// 1. Test Sequential Calls to the Same Browser
-
 import { mkdirSync, statSync, writeFileSync, readFileSync } from "fs"
 import { rm, writeFile } from "fs/promises"
 import { dirname, resolve } from "path"
@@ -47,7 +44,7 @@ const runTests = async ( ) => {
     await writeFile ( resolve ( testAssetsDir, "html-to-pdf.pdf" ), html )
     console.log ( "HTML to PDF Conversion Successful (ESM)" )
   } catch ( error ) {
-    console.error ( "Error during ESM tests:", JSON.stringify ( error, null, 2 ) )
+    console.error ( "Error during ESM tests:", error )
   } finally {
     // Clean up the test-assets directory after the tests
     await rm ( testAssetsDir, { force: true, recursive: true } )

@@ -1,7 +1,4 @@
-// TODO:
-// 1. Test Sequential Calls to the Same Browser
-
-const { html2pdf, img2pdf, pdf2img } = require ( "../dist/index.cjs" )
+const { html2pdf, img2pdf, pdf2img, launchBrowser } = require ( "../dist/index.cjs" )
 const { mkdirSync, statSync, readFileSync } = require ( "fs" )
 const { rm, writeFile } = require ( "fs/promises" )
 const { resolve } = require ( "path" )
@@ -24,6 +21,8 @@ if ( !isDirectory ( testAssetsDir ) ) {
 
 const runTests = async ( ) => {
   try {
+    // Use browserless/chrome for testing
+    // await launchBrowser ( "chrome", "ws:localhost:3000" )
     const pdf = "https://www.orimi.com/pdf-test.pdf"
 
     const pdf2imgResult = await pdf2img ( pdf )
@@ -45,7 +44,7 @@ const runTests = async ( ) => {
     await writeFile ( resolve ( testAssetsDir, "html-to-pdf.pdf" ), html )
     console.log ( "HTML to PDF Conversion Successful (CommonJS)" )
   } catch ( error ) {
-    console.error ( "Error during CommonJS tests:", JSON.stringify ( error, null, 2 ) )
+    console.error ( "An error occurred during the tests:", error )
   } finally {
     // Clean up the test-assets directory after the tests
     await rm ( testAssetsDir, { force: true, recursive: true } )

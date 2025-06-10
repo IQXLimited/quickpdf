@@ -5,6 +5,7 @@
 import { imageSize } from "image-size" // Import to get image dimensions
 import PDFDocument from "pdfkit" // Import PDFKit for PDF document generation
 import { getBuffer } from "../utilies.js" // Import custom utility function to retrieve buffer from input
+import { closeBrowser } from "../browsers.js"
 
 type Options = {
   /**
@@ -22,6 +23,11 @@ type Options = {
    * @param {number} [fontSize] - Optional font size for the header and footer text. Default is 10.
    */
   fontSize?: number
+  /**
+   * - If true, the browser will be closed after conversion.
+   * @param {boolean} [closeBrowser] - Optional flag to close the browser after conversion. Default is false.
+   */
+  closeBrowser?: boolean
 }
 
 /**
@@ -101,6 +107,10 @@ export const img2pdf = async (
       doc.end () // Finalize the PDF generation
     } ).catch ( ( e ) => {
       reject ( e ) // Reject if an error occurs during image processing
+    } ).finally ( async ( ) => {
+      if ( options.closeBrowser ) {
+        await closeBrowser ( ) // Close the browser if specified in options
+      }
     } )
   } )
 }

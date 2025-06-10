@@ -4,42 +4,9 @@
 
 import { pathToFileURL } from "url"
 import { resolve } from "path"
-import { Page, ScreenshotOptions } from "puppeteer"
+import { Page, ScreenshotOptions } from "puppeteer-core"
 import { writeFile, unlink } from "fs/promises"
-import { firefox, launchBrowser } from "../browsers"
-
-const pagePoolSize = 5
-const RESOURCE_LIMIT = 100 // Maximum allowed resources
-let resourceCount = 0
-let pagePool: Page [ ] = [ ]
-
-async function launchPages ( ) {
-  if ( pagePool.length > 0 ) {
-    return pagePool
-  }
-
-  pagePool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
-    if ( firefox ) {
-      const page = await firefox.newPage ( )
-      await page.setRequestInterception ( true )
-      await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
-      await page.goto ( "about:blank" ) // Load a blank page
-      page.on ( "request", request => {
-        resourceCount++
-        if ( resourceCount > RESOURCE_LIMIT ) {
-          page.reload ( ) // Reload the page when limit is exceeded
-          resourceCount = 0 // Reset the counter
-        } else {
-          request.continue ( )
-        }
-      } )
-      return page
-    } else {
-      throw new Error ( "Browser not available" )
-    }
-  } ) )
-  return pagePool
-}
+import { closeBrowser, getPage, launchBrowser, restorePage } from "../browsers"
 
 // Options type for customizing the image conversion process
 type Options = {
@@ -63,6 +30,11 @@ type Options = {
    * @param {number} [page] - Optional page number to return. If not specified, all pages are returned.
    */
   page?: number
+  /**
+   * - If true, the browser will be closed after conversion.
+   * @param {boolean} [closeBrowser] - Optional flag to close the browser after conversion. Default is false.
+   */
+  closeBrowser?: boolean
 }
 
 /**
@@ -77,20 +49,13 @@ export const pdf2img = async (
   input: Buffer | string | URL, // Input can be a PDF file (buffer, string path, or URL)
   options: Options = { } // Options for scaling, password decryption, and image format
 ) => {
-  await launchBrowser ( "firefox" )
+  const { browser } = await launchBrowser ( "firefox" )
 
-  if ( !firefox?.connected ) {
+  if ( !browser?.connected ) {
     throw new Error ( "Browser not available" )
   }
 
-  const pagePool = await launchPages ( )
-
-  let page = pagePool.pop ( )
-  let tempPage = false
-  if ( !page ) {
-    tempPage = true
-    page = await firefox.newPage ( )
-  }
+  const page = await getPage ( "firefox" )
 
   let path: string = ""
   let address: string = ""
@@ -177,16 +142,7 @@ export const pdf2img = async (
       await unlink ( path )
     }
 
-    if ( tempPage ) {
-      page.close ( )
-    } else {
-      await page.setViewport ( {
-        width: 800,
-        height: 600,
-        deviceScaleFactor: 1
-      } )
-      pagePool.push ( page )
-    }
+    await restorePage ( "firefox", page )
 
     // Return the rendered pages and metadata
     return {
@@ -199,18 +155,13 @@ export const pdf2img = async (
       await unlink ( path )
     }
 
-    if ( tempPage ) {
-      page.close ( )
-    } else {
-      await page.setViewport ( {
-        width: 800,
-        height: 600,
-        deviceScaleFactor: 1
-      } )
-      pagePool.push ( page )
-    }
+    await restorePage ( "firefox", page )
 
     throw error
+  } finally {
+    if ( options.closeBrowser ) {
+      await closeBrowser ( ) // Close the browser if specified in options
+    }
   }
 }
 
