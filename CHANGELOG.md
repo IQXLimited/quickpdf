@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.6.2 (2025-06-12)
+- Switch back puppeteer-core for puppeteer due to type saftey failure.
+
 # 1.6.1 (2025-06-09)
 - Run Launch Pages as Part of Launch Browser
 - The return type of launchBrowser updated to reflect above.
