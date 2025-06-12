@@ -4,7 +4,7 @@
 
 import { pathToFileURL } from "url"
 import { resolve } from "path"
-import { Page, ScreenshotOptions } from "puppeteer-core"
+import { Page, ScreenshotOptions } from "puppeteer"
 import { writeFile, unlink } from "fs/promises"
 import { closeBrowser, getPage, launchBrowser, restorePage } from "../browsers"
 
