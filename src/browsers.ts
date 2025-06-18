@@ -1,6 +1,6 @@
 import { access } from "fs/promises"
 import { join } from "path"
-import puppeteer, { Browser, Page } from "puppeteer"
+import puppeteer, { Browser, Page } from "puppeteer-core"
 
 let firefox: Browser | null = null
 let chrome: Browser | null = null
