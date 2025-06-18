@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.6.4 (2025-06-08)
+# 1.6.3 (2025-06-08)
+- Bug Fixing
+
 # 1.6.2 (2025-06-12)
 - Switch back puppeteer-core for puppeteer due to type safety failure.
 
