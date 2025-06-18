@@ -43,7 +43,7 @@ let launching: Promise<{
   browser: Browser
   type: "firefox" | "chrome"
 }> | null = null
-const pagePoolSize = 5
+// const pagePoolSize = 5
 const RESOURCE_LIMIT = 100 // Maximum allowed resources
 let resourceCount = 0
 
@@ -53,7 +53,7 @@ let chromePagePool: Page [ ] = [ ]
 async function launchPages ( browser: Browser | null, type: "chrome" | "firefox" ) {
   let pool = type === "chrome" ? chromePagePool : firefoxPagePool
 
-  if ( !browser ) {
+  if ( !browser?.connected ) {
     throw new Error ( "Browser Not Launched" )
   }
 
@@ -61,26 +61,34 @@ async function launchPages ( browser: Browser | null, type: "chrome" | "firefox"
     return pool
   }
 
-  pool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
-    if ( browser?.connected ) {
-      const page = await browser.newPage ( )
-      await page.setRequestInterception ( true )
-      await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
-      await page.goto ( "about:blank" ) // Load a blank page
-      page.on ( "request", request => {
-        resourceCount++
-        if ( resourceCount > RESOURCE_LIMIT ) {
-          page.reload ( ) // Reload the page when limit is exceeded
-          resourceCount = 0 // Reset the counter
-        } else {
-          request.continue ( )
-        }
-      } )
-      return page
-    } else {
-      throw new Error ( "Browser not available" )
-    }
-  } ) )
+  pool = [
+    await createPage ( browser ),
+    await createPage ( browser ),
+    await createPage ( browser ),
+    await createPage ( browser ),
+    await createPage ( browser )
+  ]
+
+  // pool = await Promise.all ( Array.from ( { length: pagePoolSize }, async ( ) => {
+  //   if ( browser?.connected ) {
+  //     const page = await browser.newPage ( ) // Hangs here
+  //     await page.setRequestInterception ( true )
+  //     await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
+  //     await page.goto ( "about:blank" ) // Load a blank page
+  //     page.on ( "request", request => {
+  //       resourceCount++
+  //       if ( resourceCount > RESOURCE_LIMIT ) {
+  //         page.reload ( ) // Reload the page when limit is exceeded
+  //         resourceCount = 0 // Reset the counter
+  //       } else {
+  //         request.continue ( )
+  //       }
+  //     } )
+  //     return page
+  //   } else {
+  //     throw new Error ( "Browser not available" )
+  //   }
+  // } ) )
 
   if ( type === "chrome" ) {
     chromePagePool = pool
@@ -89,6 +97,34 @@ async function launchPages ( browser: Browser | null, type: "chrome" | "firefox"
   }
 
   return pool
+}
+
+async function createPage ( browser: Browser ): Promise<Page> {
+  try {
+    const page = await browser.newPage ( ) // Hangs here
+    await page.setRequestInterception ( true )
+    await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
+    await page.goto ( "about:blank" ) // Load a blank page
+    page.on ( "request", request => {
+      resourceCount++
+      if ( resourceCount > RESOURCE_LIMIT ) {
+        page.reload ( ) // Reload the page when limit is exceeded
+        resourceCount = 0 // Reset the counter
+      } else {
+        request.continue ( )
+      }
+    } )
+    page.on ( "error", err => {
+      console.error ( "Page error:", err )
+    } )
+    page.on ( "pageerror", err => {
+      console.error ( "Page error:", err )
+    } )
+    return page
+  } catch ( err ) {
+    console.error ( "Error creating new page:", err )
+    throw new Error ( "Failed to create a new page" )
+  }
 }
 
 export async function getPage ( type: "chrome" | "firefox" ): Promise<Page> {
