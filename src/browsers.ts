@@ -177,6 +177,8 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
 
     await launchPages ( browser, browserType )
 
+    console.log ( `${browserType.toUpperCase ( )} browser is ready for usage.` )
+
     if ( browserType === "chrome" ) {
       chrome = browser
       chrome.on ( "disconnected", ( ) => {
