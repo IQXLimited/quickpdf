@@ -1,10 +1,15 @@
 import { access } from "fs/promises"
 import { join } from "path"
 import puppeteer, { Browser, Page } from "puppeteer-core"
+import os from "os"
+import { execSync } from "child_process"
+import { existsSync, rmSync } from "fs"
 
 let firefox: Browser | null = null
 let chrome: Browser | null = null
 let isRemoteBrowser = false
+
+let devMode: boolean = false
 
 const BROWSER_PATHS = {
   chrome: {
@@ -24,6 +29,50 @@ const getOS = ( ) => {
   if ( process.platform === "win32" ) return "windows"
   if ( process.platform === "darwin" ) return "mac"
   return "linux"
+}
+
+export const cleanupPuppeteerBrowsers = ( ) => {
+  console.log ( "Cleaning up orphaned Puppeteer browser instances..." )
+  const platform = os.platform ( )
+
+  try {
+    if ( platform === "win32" ) {
+      const output = execSync (
+        `powershell -Command "` +
+        `Get-WmiObject Win32_Process | ` +
+        `Where-Object { $_.CommandLine -like '*quickpdf-*' } | ` +
+        `Select-Object -ExpandProperty ProcessId"`,
+        { encoding: "utf8" }
+      )
+
+      const pids = output.match ( /ProcessId=(\d+)/g )?.map ( line => line.split ( "=" )[1] )
+      if ( pids ) {
+        for ( const pid of pids ) {
+          execSync ( `taskkill /PID ${pid} /F` )
+        }
+      }
+    } else {
+      // macOS / Linux
+      const output = execSync ( `ps aux | grep '[c]hrome\|[f]irefox' | grep quickpdf-`, { encoding: "utf8" } )
+      const lines = output.trim ( ).split ( "\n" )
+      for ( const line of lines ) {
+        const parts = line.trim ( ).split ( /\s+/ )
+        const pid = parts [ 1 ]
+        execSync ( `kill -9 ${pid}` )
+      }
+    }
+
+    console.log ( "✅ Cleaned up orphaned Puppeteer browser instances." )
+  } catch {
+    // No matches = no problem
+  }
+}
+
+export const setDevMode = ( mode: boolean ) => {
+  devMode = mode
+  if ( devMode ) {
+    console.log ( "Quick-PDF: Dev Mode Enabled" )
+  }
 }
 
 /// Function to check if the browser is installed
@@ -77,9 +126,14 @@ async function launchPages ( browser: Browser | null, type: "chrome" | "firefox"
   return pool
 }
 
-async function createPage ( browser: Browser ): Promise<Page> {
+async function createPage ( browser: Browser | null ): Promise<Page> {
   try {
-    const page = await browser.newPage ( ) // Hangs here
+    const page = await browser?.newPage ( ) // Hangs here
+
+    if ( !page ) {
+      throw new Error ( "Failed to create a new page" )
+    }
+
     await page.setRequestInterception ( true )
     await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
     await page.goto ( "about:blank" ) // Load a blank page
@@ -100,16 +154,33 @@ async function createPage ( browser: Browser ): Promise<Page> {
     } )
     return page
   } catch ( err ) {
-    console.error ( "Error creating new page:", err )
-    throw new Error ( "Failed to create a new page" )
+    if ( devMode ) {
+      console.log ( `Trying to launch a page with browser: ${browser?.process ( ) ? "exists" : "null"}` )
+      console.log ( `Browser process PID: ${browser?.process ( ) ? browser.process ( )?.pid : "N/A"}` )
+      console.log ( `Browser contexts: ${browser?.browserContexts ( ).length ?? 0}` )
+      console.log ( `Browser connected: ${browser?.connected}` )
+      console.log ( `Browser user agent: ${browser?.userAgent ( )}` )
+      console.log ( `Browser version: ${browser?.version ( )}` )
+      for ( const context of browser?.browserContexts ?. () ?? [] ) {
+        console.log ( `  - context ID: ${context.id || "(no id)"}` )
+      }
+      console.log ( `Product: ${browser?.process ( )?.spawnargs?.join ( " " )}` )
+      const targets = browser?.targets ?. () ?? []
+      console.log ( `Targets: ${targets.length}` )
+      targets.forEach ( t => {
+        console.log ( `  - Target type: ${t.type ()}, URL: ${t.url ()}` )
+      } )
+    }
+    throw err
   }
 }
 
 export async function getPage ( type: "chrome" | "firefox" ): Promise<Page> {
-  await launchPages ( type === "chrome" ? chrome : firefox, type )
+  const browser = type === "chrome" ? chrome : firefox
+  await launchPages ( browser, type )
   const pool = type === "chrome" ? chromePagePool : firefoxPagePool
   const page = pool.pop ( )
-  if ( !page ) throw new Error ( "Page pool unexpectedly empty" )
+  if ( !page ) return await createPage ( browser ) // e.g. async of requests > RESOURCE_LIMIT
   return page
 }
 
@@ -130,11 +201,21 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
   browser: Browser
   type: "chrome" | "firefox"
 }> {
+  const isBrowserValid = ( browser: Browser | null ) => {
+    try {
+      if ( browser && browser.browserContexts ( ).length && browser.connected && browser.process ( ) !== null ) {
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
   if ( !browserType ) {
-    if ( firefox?.connected ) {
-      return { browser: firefox, type: "firefox" }
-    } else if ( chrome?.connected ) {
-      return { browser: chrome, type: "chrome" }
+    if ( isBrowserValid ( firefox ) ) {
+      return { browser: firefox!, type: "firefox" }
+    } else if ( isBrowserValid ( chrome ) ) {
+      return { browser: chrome!, type: "chrome" }
     } else {
       const [ firefox, chrome ] = await Promise.all ( [
         launchBrowser ( "firefox", wsURL ).catch ( ( ) => null ),
@@ -149,15 +230,25 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
     }
   }
 
-  if ( browserType === "firefox" && firefox?.connected ) {
+  if ( browserType === "firefox" && isBrowserValid ( firefox ) ) {
     return {
-      browser: firefox,
+      browser: firefox!,
       type: "firefox"
     }
-  } else if ( browserType === "chrome" && chrome?.connected ) {
+  } else if ( browserType === "chrome" && isBrowserValid ( chrome ) ) {
     return {
-      browser: chrome,
+      browser: chrome!,
       type: "chrome"
+    }
+  }
+
+  await cleanupPuppeteerBrowsers ( )
+  if ( existsSync ( join ( process.cwd ( ), "browser-data" ) ) ) {
+    try {
+      rmSync ( join ( process.cwd ( ), "browser-data" ), { recursive: true, force: true } )
+      console.log ( "🧹 Cleaned browser-data after shutdown." )
+    } catch ( err ) {
+      console.warn ( "⚠️ Failed to remove browser-data on shutdown:", err )
     }
   }
 
@@ -184,6 +275,7 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
       browser = await puppeteer.launch ( {
         browser: browserType,
         headless: "shell",
+        userDataDir: join ( process.cwd ( ), "browser-data" ),
         executablePath: BROWSER_PATHS [ browserType ] [ getOS ( ) ],
         args: [ "--no-sandbox", "--disable-setuid-sandbox" ]
       } )
@@ -193,13 +285,21 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
 
     if ( browserType === "chrome" ) {
       chrome = browser
+      chrome.on ( "targetdestroyed", target => {
+        console.log ( `Target destroyed: ${target.url ()}` )
+      } )
       chrome.on ( "disconnected", ( ) => {
         chrome = null
+        console.warn ( "Browser disconnected unexpectedly" )
       } )
     } else {
       firefox = browser
+      firefox.on ( "targetdestroyed", target => {
+        console.log ( `Target destroyed: ${target.url ()}` )
+      } )
       firefox.on ( "disconnected", ( ) => {
         firefox = null
+        console.warn ( "Browser disconnected unexpectedly" )
       } )
     }
 
@@ -252,6 +352,10 @@ process.on ( "SIGINT", async ( ) => {
 
 process.on ( "SIGTERM", async ( ) => {
   console.log ( "SIGTERM received. Closing browsers..." )
+  await closeBrowser ( )
+} )
+
+process.on ( "uncaughtException", async ( ) => {
   await closeBrowser ( )
 } )
 

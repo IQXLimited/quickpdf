@@ -107,7 +107,7 @@ export default tseslint.config (
           after: true,
         },
       ],
-      "@stylistic/func-call-spacing": [
+      "@stylistic/function-call-spacing": [
         "error",
         "always"
       ],
@@ -119,7 +119,7 @@ export default tseslint.config (
         "double",
         {
           "avoidEscape": true,
-          "allowTemplateLiterals": true
+          "allowTemplateLiterals": "always"
         }
       ],
       "@stylistic/indent": [
