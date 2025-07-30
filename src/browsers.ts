@@ -231,7 +231,7 @@ async function createPage ( browser: Browser | null ): Promise<Page> {
       for ( const context of browser?.browserContexts ?. () ?? [] ) {
         console.log ( `  - context ID: ${context.id || "(no id)"}` )
       }
-      console.log ( `Product: ${browser?.process ( )?.spawnargs?.join ( " " )}` )
+      console.log ( `Product: ${browser?.process ( )?.spawnargs?.join ( " ") ?? "(no spawnargs)"}` )
       const targets = browser?.targets ?. () ?? []
       console.log ( `Targets: ${targets.length}` )
       targets.forEach ( t => {
