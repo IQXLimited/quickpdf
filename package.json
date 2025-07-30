@@ -35,9 +35,10 @@
   "scripts": {
     "build": "npm ci --no-audit && rollup -c",
     "lint": "npx --yes eslint",
-    "test": "npm run build && node test/test-cjs.cjs && node test/test-esm.mjs",
+    "test": "npm run build && npm run test:cjs && npm run test:esm && npm run test:firefox && npm run test:pid",
     "test:esm": "npm run build && node test/test-esm.mjs",
-    "test:cjs": "npm run build && node test/test-cjs.cjs"
+    "test:cjs": "npm run build && node test/test-cjs.cjs",
+    "test:firefox": "npm run build && node test/browser/test-dangling-firefox.mjs"
   },
   "engines": {
     "node": ">=20.0.0"
