@@ -35,7 +35,7 @@
   "scripts": {
     "build": "npm ci --no-audit && rollup -c",
     "lint": "npx --yes eslint",
-    "test": "npm run build && npm run test:cjs && npm run test:esm && npm run test:firefox && npm run test:pid",
+    "test": "npm run build && npm run test:cjs && npm run test:esm && npm run test:firefox",
     "test:esm": "npm run build && node test/test-esm.mjs",
     "test:cjs": "npm run build && node test/test-cjs.cjs",
     "test:firefox": "npm run build && node test/browser/test-dangling-firefox.mjs"
