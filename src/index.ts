@@ -15,4 +15,4 @@ export * from "./modules/img2pdf.js"
 
 export * from "./modules/html2pdf.js"
 
-export { launchBrowser, closeBrowser } from "./browsers.js"
+export { launchBrowser, closeBrowser, setDevMode } from "./browsers.js"
