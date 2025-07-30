@@ -195,7 +195,7 @@ async function launchPages ( browser: Browser | null, type: "chrome" | "firefox"
 async function createPage ( browser: Browser | null ): Promise<Page> {
   try {
     const context = browser?.defaultBrowserContext ( ) || await browser?.createBrowserContext ( )
-    const page = await context?.newPage ( ) // Hangs here
+    const page = await context?.newPage ( ) // Potential hanging issue: This may occur if the browser context is not properly initialized, or if system resources are constrained. Consider retrying the operation or ensuring the browser is fully launched before calling this method.
 
     if ( !page ) {
       throw new Error ( "Failed to create a new page" )
