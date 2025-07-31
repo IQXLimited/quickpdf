@@ -1,7 +1,7 @@
 import { mkdirSync, statSync, writeFileSync, readFileSync } from "fs"
 import { rm, writeFile } from "fs/promises"
 import { dirname, resolve } from "path"
-import { html2pdf, img2pdf, pdf2img } from "../dist/index.mjs"
+import { html2pdf, img2pdf, pdf2img, closeBrowser } from "../dist/index.mjs"
 import { fileURLToPath } from "url"
 
 const __dirname = dirname ( fileURLToPath ( import.meta.url ) )
@@ -40,14 +40,39 @@ const runTests = async ( ) => {
     await writeFile ( resolve ( testAssetsDir, "img-2-pdf.pdf" ), img2pdfResult )
     console.log ( "Image to PDF Conversion Successful (ESM)" )
 
-    const html = await html2pdf ( readFileSync ( resolve ( __dirname, "./test-pdf.html" ), "utf-8" ) )
+    const testFile = readFileSync ( resolve ( __dirname, "./test-pdf.html" ), "utf-8" )
+    const html = await html2pdf ( testFile )
     await writeFile ( resolve ( testAssetsDir, "html-to-pdf.pdf" ), html )
     console.log ( "HTML to PDF Conversion Successful (ESM)" )
+
+    console.log("Starting stress test... (20 attempts)")
+
+    const attempts = 20
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const html = await html2pdf ( testFile )
+        await writeFile ( resolve ( testAssetsDir, `stress-test-${i}.pdf` ), html )
+      } catch ( error ) {
+        console.error ( `html2pdf failed on attempt ${i}`, error )
+      }
+    }
+
+    console.log("Stress Test Successful (ESM)")
+    console.log("Starting parallel conversion tests... (10 parallel conversions)")
+
+    const parallel = Array.from ( { length: 10 } ).map ( ( _, i ) =>
+      html2pdf ( testFile )
+        .then ( result => writeFile ( resolve ( testAssetsDir, `parallel-${i}.pdf` ), result ) )
+        .catch ( error => console.error ( `Parallel conversion ${i} failed`, error ) )
+    )
+    await Promise.all ( parallel )
+    console.log ( "Parallel Conversion Tests Successful (ESM)" )
   } catch ( error ) {
     console.error ( "Error during ESM tests:", error )
   } finally {
     // Clean up the test-assets directory after the tests
     await rm ( testAssetsDir, { force: true, recursive: true } )
+    await closeBrowser ( )
     process.exit ( 0 )
   }
 }

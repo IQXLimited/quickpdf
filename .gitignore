@@ -132,3 +132,4 @@ dist
 temp
 yarn.lock
 test-assets
+browser-data

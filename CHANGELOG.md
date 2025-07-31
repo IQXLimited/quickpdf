@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.7.3 (2025-07-30)
+# 1.7.2 (2025-07-30)
+- Better cleanup of Browser Data
+
+# 1.7.1 (2025-07-23)
+- Add Optional Additional Logging in Dev Mode only
+
+# 1.7.0 (2025-07-23)
+- Cleanup Old Browser Processes on the machine
+
+# 1.6.4 (2025-06-08)
+# 1.6.3 (2025-06-08)
+- Bug Fixing
+
 # 1.6.2 (2025-06-12)
 - Switch back puppeteer-core for puppeteer due to type safety failure.
 
