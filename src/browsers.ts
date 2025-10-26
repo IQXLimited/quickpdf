@@ -119,16 +119,37 @@ export const cleanupPuppeteerBrowsers = ( ) => {
   } catch ( e: any ) {
     console.error ( `Error during cleanup: ${e.message}` )
   } finally {
-    // Always attempt to remove the browser-data directory, as it might be from a previous,
-    // unrelated crash or partial cleanup.
+    // Check if any processes are still using the browser-data directory before deletion
+    let processesUsingDir = false
+    try {
+      const platform = os.platform ( )
+      if ( platform === "win32" ) {
+      // Check for handles to the browser-data directory on Windows
+        const command = `powershell -Command "Get-Process | ` +
+          `Where-Object { $_.MainModule.FileName -like '*${BROWSER_DATA_DIR.replace ( /\\/g, "\\\\" )}*' } | ` +
+          `Select-Object -ExpandProperty Id"`
+        const output = execSync ( command, { encoding: "utf8" } )
+        processesUsingDir = output.trim ( ).length > 0
+      } else {
+      // Check for open file handles on Unix-like systems
+        const command = `lsof +D "${BROWSER_DATA_DIR}" 2>/dev/null | grep -v COMMAND | wc -l`
+        const output = execSync ( command, { encoding: "utf8" } )
+        processesUsingDir = parseInt ( output.trim ( ) ) > 0
+      }
+    } catch ( e: any ) {
+      console.log ( `Could not check if processes are using browser-data directory: ${e.message}` )
+    }
+
+    // Only attempt to remove the browser-data directory if no processes are using it
     if ( existsSync ( BROWSER_DATA_DIR ) ) {
-      try {
-        rmSync ( BROWSER_DATA_DIR, { recursive: true, force: true } )
-        console.log ( `🧹 Cleaned up browser-data directory: ${BROWSER_DATA_DIR}` )
-      } catch ( err: any ) {
-        console.warn ( `⚠️ Failed to remove browser-data directory ${BROWSER_DATA_DIR}: ${err.message}` )
-        // This error is the primary one you're trying to solve. If it fails, it means
-        // something is still holding a lock.
+      if ( !processesUsingDir ) {
+        try {
+          rmSync ( BROWSER_DATA_DIR, { recursive: true, force: true } )
+          console.log ( `🧹 Cleaned up browser-data directory: ${BROWSER_DATA_DIR}` )
+        } catch {
+          // Something is still locking the directory, skip deletion
+          console.warn ( `⚠️ Could not delete browser-data directory, it may be in use: ${BROWSER_DATA_DIR}` )
+        }
       }
     }
   }
@@ -195,7 +216,10 @@ async function launchPages ( browser: Browser | null, type: "chrome" | "firefox"
 async function createPage ( browser: Browser | null ): Promise<Page> {
   try {
     const context = browser?.defaultBrowserContext ( ) || await browser?.createBrowserContext ( )
-    const page = await context?.newPage ( ) // Potential hanging issue: This may occur if the browser context is not properly initialized, or if system resources are constrained. Consider retrying the operation or ensuring the browser is fully launched before calling this method.
+    // Potential hanging issue: This may occur if the browser context is not properly initialized,
+    // or if system resources are constrained. Consider retrying the operation or ensuring the
+    // browser is fully launched before calling this method.
+    const page = await context?.newPage ( )
 
     if ( !page ) {
       throw new Error ( "Failed to create a new page" )
@@ -231,7 +255,7 @@ async function createPage ( browser: Browser | null ): Promise<Page> {
       for ( const context of browser?.browserContexts ?. () ?? [] ) {
         console.log ( `  - context ID: ${context.id || "(no id)"}` )
       }
-      console.log ( `Product: ${browser?.process ( )?.spawnargs?.join ( " ") ?? "(no spawnargs)"}` )
+      console.log ( `Product: ${browser?.process ( )?.spawnargs?.join ( " " ) ?? "(no spawnargs)"}` )
       const targets = browser?.targets ?. () ?? []
       console.log ( `Targets: ${targets.length}` )
       targets.forEach ( t => {
@@ -263,6 +287,8 @@ export async function restorePage ( type: "chrome" | "firefox", page: Page ) {
     firefoxPagePool.push ( page )
   }
 }
+
+let cleanupRunning = false
 
 async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: string ): Promise<{
   browser: Browser
@@ -309,13 +335,19 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
     }
   }
 
-  await cleanupPuppeteerBrowsers ( )
-  if ( existsSync ( join ( process.cwd ( ), "browser-data" ) ) ) {
+  // Ensure cleanup only runs once at a time
+  if ( cleanupRunning ) {
+    // Wait for cleanup to finish by polling the flag
+    while ( cleanupRunning ) {
+      await new Promise ( resolve => setTimeout ( resolve, 100 ) )
+    }
+    // Skip cleanup since it already ran, continue with browser launch
+  } else {
+    cleanupRunning = true
     try {
-      rmSync ( join ( process.cwd ( ), "browser-data" ), { recursive: true, force: true } )
-      console.log ( "🧹 Cleaned browser-data after shutdown." )
-    } catch ( err ) {
-      console.warn ( "⚠️ Failed to remove browser-data on shutdown:", err )
+      await cleanupPuppeteerBrowsers ( )
+    } finally {
+      cleanupRunning = false
     }
   }
 
