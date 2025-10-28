@@ -3,7 +3,7 @@
 // File: html2pdf.ts
 
 import { existsSync } from "fs" // Import function to check if a file exists
-import { HtmlValidate } from "html-validate/node" // Import the HTML validation library
+import { HtmlValidate } from "html-validate" // Import the HTML validation library
 import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
 import type { Report } from "html-validate"
 import { closeBrowser, launchBrowser, getPage, restorePage } from "../browsers.js"
