@@ -129,15 +129,20 @@ export const cleanupPuppeteerBrowsers = ( ) => {
   } finally {
     // Check if any processes are still using the browser-data directory before deletion
     let processesUsingDir = false
+    const escapedDataDir = escapeForShellRegex ( BROWSER_DATA_DIR )
     try {
       const platform = os.platform ( )
       if ( platform === "win32" ) {
       // Check for handles to the browser-data directory on Windows
-        const command = `powershell -Command "Get-Process | ` +
-          `Where-Object { $_.MainModule.FileName -like '*${BROWSER_DATA_DIR.replace ( /\\/g, "\\\\" )}*' } | ` +
-          `Select-Object -ExpandProperty Id"`
-        const output = execSync ( command, { encoding: "utf8" } )
-        processesUsingDir = output.trim ( ).length > 0
+        // const command = `powershell -Command "Get-Process | ` +
+        //   `Where-Object { $_.MainModule.FileName -like '*${BROWSER_DATA_DIR.replace ( /\\/g, "\\\\" )}*' } | ` +
+        //   `Select-Object -ExpandProperty Id"`
+        const args = [
+          "-Command",
+          `Get-Process | Where-Object { $_.Modules | Where-Object { $_.FileName -like '*${escapedDataDir}*' } } | Select-Object -ExpandProperty Id`
+        ]
+        const output = spawnSync ( "powershell", args, { encoding: "utf8" } )
+        processesUsingDir = output.stdout.trim ( ).length > 0
       } else {
       // Check for open file handles on Unix-like systems
         const command = `lsof +D "${BROWSER_DATA_DIR}" 2>/dev/null | grep -v COMMAND | wc -l`
