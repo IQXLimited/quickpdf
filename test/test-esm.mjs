@@ -23,7 +23,7 @@ if ( !isDirectory ( testAssetsDir ) ) {
 
 const runTests = async ( ) => {
   try {
-    const pdf = "https://www.orimi.com/pdf-test.pdf"
+    const pdf = "https://www.adobe.com/support/products/enterprise/knowledgecenter/media/c4611_sample_explain.pdf"
 
     const pdf2imgResult = await pdf2img ( pdf )
     let index = 1
