@@ -2,7 +2,7 @@ import { access } from "fs/promises"
 import { join } from "path"
 import puppeteer, { Browser, Page } from "puppeteer"
 import os from "os"
-import { execSync } from "child_process"
+import { execSync, spawnSync } from "child_process"
 import { existsSync, rmSync } from "fs"
 
 let firefox: Browser | null = null
@@ -43,23 +43,22 @@ const LAUNCH_ID_ARG = "--quickpdf-launch-id=" // Use this prefix for easier matc
 export const cleanupPuppeteerBrowsers = ( ) => {
   console.log ( "Cleaning up orphaned Puppeteer browser instances..." )
   const platform = os.platform ( )
-  let pidsToKill: string[] = []
+  let pidsToKill: string [ ] = [ ]
   const escapedDataDir = escapeForShellRegex ( BROWSER_DATA_DIR )
 
   try {
     if ( platform === "win32" ) {
       // Find processes using 'chrome.exe' or 'firefox.exe' that have '--user-data-dir'
       // pointing to our expected browser-data directory OR the specific launch ID.
-      const command = `
-        powershell -Command "Get-CimInstance Win32_Process |
-        Where-Object {
+      const args = [
+        "-Command",
+        `Get-CimInstance Win32_Process | Where-Object {
           ($_.Name -eq 'chrome.exe' -or $_.Name -eq 'firefox.exe') -and
           ($_.CommandLine -like '*-user-data-dir=*${escapedDataDir}*' -or $_.CommandLine -like '*${LAUNCH_ID_ARG}*')
-        } |
-        Select-Object -ExpandProperty ProcessId"
-      `
-      const output = execSync ( command, { encoding: "utf8" } )
-      pidsToKill = output.trim ( ).split ( os.EOL ).filter ( Boolean )
+        } | Select-Object -ExpandProperty ProcessId`
+      ]
+      const output = spawnSync ( "powershell", args, { encoding: "utf8" } )
+      pidsToKill = output.stdout.trim ( ).split ( os.EOL ).filter ( Boolean )
     } else {
       // macOS / Linux
       // Find processes using 'firefox' or 'chrome' that have '--user-data-dir'
@@ -88,7 +87,6 @@ export const cleanupPuppeteerBrowsers = ( ) => {
           continue
         }
 
-        console.log ( `Attempting to kill orphan browser process with PID ${pid}` )
         if ( platform === "win32" ) {
           // /T kills the process tree, /F forces termination
           execSync ( `taskkill /PID ${numericPid} /F /T` )
