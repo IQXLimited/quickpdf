@@ -31,12 +31,20 @@ const getOS = ( ) => {
   return "linux"
 }
 
-const BROWSER_DATA_DIR = join ( process.cwd (), "browser-data" )
+// Helper function to escape slashes/backslashes for shell regex
+function escapeForShellRegex ( path: string ) : string {
+  // Escape backslashes (\) first, then forward slashes (/)
+  // Replace each \ with \\, then each / with \/
+  return path.replace ( /\\/g, "\\\\" ).replace ( /\//g, "\\/" )
+}
+
+const BROWSER_DATA_DIR = join ( process.cwd ( ), "browser-data" )
 const LAUNCH_ID_ARG = "--quickpdf-launch-id=" // Use this prefix for easier matching
 export const cleanupPuppeteerBrowsers = ( ) => {
   console.log ( "Cleaning up orphaned Puppeteer browser instances..." )
   const platform = os.platform ( )
   let pidsToKill: string[] = []
+  const escapedDataDir = escapeForShellRegex ( BROWSER_DATA_DIR )
 
   try {
     if ( platform === "win32" ) {
@@ -46,7 +54,7 @@ export const cleanupPuppeteerBrowsers = ( ) => {
         powershell -Command "Get-CimInstance Win32_Process |
         Where-Object {
           ($_.Name -eq 'chrome.exe' -or $_.Name -eq 'firefox.exe') -and
-          ($_.CommandLine -like '*-user-data-dir=*${BROWSER_DATA_DIR.replace ( /\\/g, "\\\\" )}*' -or $_.CommandLine -like '*${LAUNCH_ID_ARG}*')
+          ($_.CommandLine -like '*-user-data-dir=*${escapedDataDir}*' -or $_.CommandLine -like '*${LAUNCH_ID_ARG}*')
         } |
         Select-Object -ExpandProperty ProcessId"
       `
@@ -59,8 +67,7 @@ export const cleanupPuppeteerBrowsers = ( ) => {
       // Use 'grep -F' for fixed string matching and 'grep -v grep' to exclude the grep process itself
       const command =
         `ps aux | grep -E '[c]hrome|[f]irefox' | ` +
-        `grep -E -- '-user-data-dir=.+${BROWSER_DATA_DIR.replace ( /\//g, "\\/" )}` +
-        `|${LAUNCH_ID_ARG}' | awk '{print $2}'`
+        `grep -E -- '-user-data-dir=.+${escapedDataDir}' | ${LAUNCH_ID_ARG}' | awk '{print $2}'`
       const output = execSync ( command, { encoding: "utf8" } )
       pidsToKill = output.trim ( ).split ( os.EOL ).filter ( Boolean )
     }
