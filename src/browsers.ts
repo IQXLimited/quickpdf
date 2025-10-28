@@ -64,11 +64,14 @@ export const cleanupPuppeteerBrowsers = ( ) => {
       // Find processes using 'firefox' or 'chrome' that have '--user-data-dir'
       // pointing to our expected browser-data directory OR the specific launch ID.
       // Use 'grep -F' for fixed string matching and 'grep -v grep' to exclude the grep process itself
-      const command =
-        `ps aux | grep -E '[c]hrome|[f]irefox' | ` +
-        `grep -E -- '-user-data-dir=.+${escapedDataDir}' | ${LAUNCH_ID_ARG}' | awk '{print $2}'`
-      const output = execSync ( command, { encoding: "utf8" } )
-      pidsToKill = output.trim ( ).split ( os.EOL ).filter ( Boolean )
+      const args = [
+        "aux",
+        "|", "grep", "-E", "'[c]hrome|[f]irefox'",
+        "|", "grep", "-E", `-- '-user-data-dir=.+${escapedDataDir}' | ${LAUNCH_ID_ARG}`,
+        "|", "awk", "'{print $2}'"
+      ]
+      const output = spawnSync ( "ps", args, { encoding: "utf8" } )
+      pidsToKill = output.stdout.trim ( ).split ( os.EOL ).filter ( Boolean )
     }
 
     if ( pidsToKill.length === 0 ) {
