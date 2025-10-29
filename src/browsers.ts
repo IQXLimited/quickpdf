@@ -332,7 +332,7 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
       }
     }
 
-    await writeFile ( registryPath, JSON.stringify ( registry ) )
+    await writeFile ( registryPath, JSON.stringify ( registry, null, 2 ) )
 
     await launchPages ( browser, browserType )
 
