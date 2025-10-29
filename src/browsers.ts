@@ -49,6 +49,27 @@ const isProcessAlive = ( pid: number ) => {
 // Async delay helper
 const sleep = ( ms: number ) => new Promise ( resolve => setTimeout ( resolve, ms ) )
 
+import { platform } from "os"
+import { execSync } from "child_process"
+
+const killProcess = ( pid: number, force = false ) => {
+  const isWin = platform ( ) === "win32"
+
+  try {
+    if ( isWin ) {
+      // Windows: 'taskkill' can forcefully terminate a process
+      const signal = force ? "/F" : ""
+      execSync ( `taskkill ${signal} /PID ${pid}` )
+    } else {
+      // UNIX-like: use SIGTERM or SIGKILL
+      process.kill ( pid, force ? "SIGKILL" : "SIGTERM" )
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
 export const cleanupOrphanedBrowsers = async ( ) => {
   let registry: Record<string, { pid: number; ownerPid: number; started: number }> = { }
 
@@ -67,7 +88,7 @@ export const cleanupOrphanedBrowsers = async ( ) => {
     if ( !isProcessAlive ( ownerPid ) ) {
       // Owner process is gone → safe to terminate browser
       try {
-        process.kill ( pid, "SIGTERM" )
+        killProcess ( pid )
       } catch { } // ignore if already gone
 
       // Give it a moment before force kill
@@ -75,7 +96,7 @@ export const cleanupOrphanedBrowsers = async ( ) => {
 
       try {
         if ( isProcessAlive ( pid ) ) {
-          process.kill ( pid, "SIGKILL" )
+          killProcess ( pid, true )
         }
       } catch { }
 
