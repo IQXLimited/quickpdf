@@ -1,6 +1,6 @@
 {
   "name": "@iqx-limited/quick-pdf",
-  "version": "1.7.3",
+  "version": "1.8.1",
   "author": "IQX",
   "description": "Converting PDFs to images (📃 to 📸)",
   "type": "module",
@@ -50,7 +50,7 @@
     "image-size": "^2.0.2",
     "path2d-polyfill": "^3.2.1",
     "pdfkit": "^0.17.2",
-    "puppeteer": "^24.26.1",
+    "puppeteer": "^24.27.0",
     "rollup-plugin-node-externals": "^8.1.1",
     "semver": "^7.7.3"
   },
@@ -60,7 +60,7 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-typescript": "^12.3.0",
     "@stylistic/eslint-plugin": "^5.5.0",
-    "@types/node": "^24.9.1",
+    "@types/node": "^24.9.2",
     "@types/pdfkit": "^0.17.3",
     "@types/semver": "^7.7.1",
     "eslint": "^9.38.0",
