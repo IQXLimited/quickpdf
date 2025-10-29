@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.8.1 (2025-10-29)
+- Refactor cleanup of data directory. Only create if specifically asked for.
+- Destroy only old pids created by this run of quick-pdf.
+
+# 1.8.0 (2025-10-28)
+- HTML-Validate v10
+- Cleanup extra pids
+
 # 1.7.3 (2025-07-30)
 # 1.7.2 (2025-07-30)
 - Better cleanup of Browser Data

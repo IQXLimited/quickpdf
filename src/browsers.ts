@@ -1,15 +1,16 @@
-import { access } from "fs/promises"
+import { access, readFile, writeFile } from "fs/promises"
 import { join } from "path"
 import puppeteer, { Browser, Page } from "puppeteer"
 import os from "os"
-import { execSync, spawnSync } from "child_process"
-import { existsSync, rmSync } from "fs"
 
 let firefox: Browser | null = null
 let chrome: Browser | null = null
 let isRemoteBrowser = false
 
 let devMode: boolean = false
+let useDataDir: boolean = false
+
+const registryPath = join ( process.cwd ( ), ".puppeteer-launches.json" )
 
 const BROWSER_PATHS = {
   chrome: {
@@ -24,6 +25,70 @@ const BROWSER_PATHS = {
   }
 }
 
+/// Function to launch the browser
+let launching: Promise<{
+  browser: Browser
+  type: "firefox" | "chrome"
+}> | null = null
+const RESOURCE_LIMIT = 100 // Maximum allowed resources
+let resourceCount = 0
+
+let firefoxPagePool: Page [ ] = [ ]
+let chromePagePool: Page [ ] = [ ]
+
+// Helper to check if a process exists
+const isProcessAlive = ( pid: number ) => {
+  try {
+    process.kill ( pid, 0 ) // throws if process does not exist
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Async delay helper
+const sleep = ( ms: number ) => new Promise ( resolve => setTimeout ( resolve, ms ) )
+
+export const cleanupOrphanedBrowsers = async ( ) => {
+  let registry: Record<string, { pid: number; ownerPid: number; started: number }> = { }
+
+  try {
+    const data = await readFile ( registryPath, "utf8" )
+    registry = JSON.parse ( data )
+  } catch {
+    // File might not exist; start with empty registry
+    registry = { }
+  }
+
+  const launchIds = Object.keys ( registry )
+  for ( const launchId of launchIds ) {
+    const { pid, ownerPid } = registry [ launchId ]
+
+    if ( !isProcessAlive ( ownerPid ) ) {
+      // Owner process is gone → safe to terminate browser
+      try {
+        process.kill ( pid, "SIGTERM" )
+      } catch { } // ignore if already gone
+
+      // Give it a moment before force kill
+      await sleep ( 500 )
+
+      try {
+        if ( isProcessAlive ( pid ) ) {
+          process.kill ( pid, "SIGKILL" )
+        }
+      } catch { }
+
+      // Remove from registry
+      delete registry [ launchId ]
+      console.log ( `🧹 Cleaned up orphaned browser PID ${pid} (launchId: ${launchId})` )
+    }
+  }
+
+  // Save updated registry
+  await writeFile ( registryPath, JSON.stringify ( registry, null, 2 ) )
+}
+
 /// Function to get the operating system
 const getOS = ( ) => {
   if ( process.platform === "win32" ) return "windows"
@@ -31,147 +96,21 @@ const getOS = ( ) => {
   return "linux"
 }
 
-// Helper function to escape slashes/backslashes for shell regex
-function escapeForShellRegex ( path: string ) : string {
-  // Escape backslashes (\) first, then forward slashes (/)
-  // Replace each \ with \\, then each / with \/
-  return path.replace ( /\\/g, "\\\\" ).replace ( /\//g, "\\/" )
-}
-
-const BROWSER_DATA_DIR = join ( process.cwd ( ), "browser-data" )
-const LAUNCH_ID_ARG = "--quickpdf-launch-id=" // Use this prefix for easier matching
-export const cleanupPuppeteerBrowsers = ( ) => {
-  console.log ( "Cleaning up orphaned Puppeteer browser instances..." )
-  const platform = os.platform ( )
-  let pidsToKill: string [ ] = [ ]
-  const escapedDataDir = escapeForShellRegex ( BROWSER_DATA_DIR )
-
-  try {
-    if ( platform === "win32" ) {
-      // Find processes using 'chrome.exe' or 'firefox.exe' that have '--user-data-dir'
-      // pointing to our expected browser-data directory OR the specific launch ID.
-      const args = [
-        "-Command",
-        `Get-CimInstance Win32_Process | Where-Object {
-          ($_.Name -eq 'chrome.exe' -or $_.Name -eq 'firefox.exe') -and
-          ($_.CommandLine -like '*-user-data-dir=*${escapedDataDir}*' -or $_.CommandLine -like '*${LAUNCH_ID_ARG}*')
-        } | Select-Object -ExpandProperty ProcessId`
-      ]
-      const output = spawnSync ( "powershell", args, { encoding: "utf8" } )
-      pidsToKill = output.stdout.trim ( ).split ( os.EOL ).filter ( Boolean )
-    } else {
-      // macOS / Linux
-      // Find processes using 'firefox' or 'chrome' that have '--user-data-dir'
-      // pointing to our expected browser-data directory OR the specific launch ID.
-      // Use 'grep -F' for fixed string matching and 'grep -v grep' to exclude the grep process itself
-      const args = [
-        "aux",
-        "|", "grep", "-E", "'[c]hrome|[f]irefox'",
-        "|", "grep", "-E", `-- '-user-data-dir=.+${escapedDataDir}' | ${LAUNCH_ID_ARG}`,
-        "|", "awk", "'{print $2}'"
-      ]
-      const output = spawnSync ( "ps", args, { encoding: "utf8" } )
-      pidsToKill = output.stdout.trim ( ).split ( os.EOL ).filter ( Boolean )
-    }
-
-    if ( pidsToKill.length === 0 ) {
-      console.log ( "No orphaned Puppeteer browser instances found matching user data dir or launch ID." )
-      return
-    }
-
-    console.log ( `Found ${pidsToKill.length} orphaned browser processes: ${pidsToKill.join ( ", " )}` )
-
-    let killedCount = 0
-    for ( const pid of pidsToKill ) {
-      try {
-        const numericPid = Number ( pid )
-        if ( isNaN ( numericPid ) ) {
-          console.warn ( `Skipping invalid PID: ${pid}` )
-          continue
-        }
-
-        if ( platform === "win32" ) {
-          // /T kills the process tree, /F forces termination
-          execSync ( `taskkill /PID ${numericPid} /F /T` )
-        } else {
-          // Try SIGTERM first for graceful shutdown, then SIGKILL
-          try {
-            process.kill ( numericPid, "SIGTERM" )
-            // Give it a moment to die
-            execSync ( `sleep 0.5` ) // Using sleep command for cross-platform, but a real async sleep is better
-          } catch ( e: any ) {
-            if ( e.code !== "ESRCH" ) { // ESRCH means "No such process"
-              throw e // Re-throw if it's not "process not found"
-            }
-          }
-          // Check if process is still alive and then force kill
-          try {
-            process.kill ( numericPid, 0 ) // Check if process exists without sending signal
-            process.kill ( numericPid, "SIGKILL" )
-          } catch ( e: any ) {
-            if ( e.code !== "ESRCH" ) {
-              throw e
-            }
-          }
-        }
-        killedCount++
-      } catch ( e: any ) {
-        if ( e.message.includes ( "not found" ) || e.code === "ESRCH" ) {
-          console.log ( `Process ${pid} already terminated.` )
-        } else {
-          console.warn ( `⚠️ Failed to kill process ${pid}: ${e.message}` )
-        }
-      }
-    }
-    console.log ( `✅ Attempted to clean up ${killedCount} orphaned Puppeteer browser instances.` )
-  } catch ( e: any ) {
-    console.error ( `Error during cleanup: ${e.message}` )
-  } finally {
-    // Check if any processes are still using the browser-data directory before deletion
-    let processesUsingDir = false
-    const escapedDataDir = escapeForShellRegex ( BROWSER_DATA_DIR )
-    try {
-      const platform = os.platform ( )
-      if ( platform === "win32" ) {
-      // Check for handles to the browser-data directory on Windows
-        // const command = `powershell -Command "Get-Process | ` +
-        //   `Where-Object { $_.MainModule.FileName -like '*${BROWSER_DATA_DIR.replace ( /\\/g, "\\\\" )}*' } | ` +
-        //   `Select-Object -ExpandProperty Id"`
-        const args = [
-          "-Command",
-          `Get-Process | Where-Object { $_.Modules | Where-Object { $_.FileName -like '*${escapedDataDir}*' } } | Select-Object -ExpandProperty Id`
-        ]
-        const output = spawnSync ( "powershell", args, { encoding: "utf8" } )
-        processesUsingDir = output.stdout.trim ( ).length > 0
-      } else {
-      // Check for open file handles on Unix-like systems
-        const command = `lsof +D "${BROWSER_DATA_DIR}" 2>/dev/null | grep -v COMMAND | wc -l`
-        const output = execSync ( command, { encoding: "utf8" } )
-        processesUsingDir = parseInt ( output.trim ( ) ) > 0
-      }
-    } catch ( e: any ) {
-      console.log ( `Could not check if processes are using browser-data directory: ${e.message}` )
-    }
-
-    // Only attempt to remove the browser-data directory if no processes are using it
-    if ( existsSync ( BROWSER_DATA_DIR ) ) {
-      if ( !processesUsingDir ) {
-        try {
-          rmSync ( BROWSER_DATA_DIR, { recursive: true, force: true } )
-          console.log ( `🧹 Cleaned up browser-data directory: ${BROWSER_DATA_DIR}` )
-        } catch {
-          // Something is still locking the directory, skip deletion
-          console.warn ( `⚠️ Could not delete browser-data directory, it may be in use: ${BROWSER_DATA_DIR}` )
-        }
-      }
-    }
-  }
-}
-
 export const setDevMode = ( mode: boolean ) => {
   devMode = mode
   if ( devMode ) {
     console.log ( "Quick-PDF: Dev Mode Enabled" )
+    // On startup, clean up any orphaned browsers from previous runs
+    cleanupOrphanedBrowsers ( ).catch ( err => {
+      console.error ( "Error during cleanup of orphaned browsers:", err )
+    } )
+  }
+}
+
+export const setDataDir = ( mode: boolean ) => {
+  useDataDir = mode
+  if ( useDataDir ) {
+    console.log ( `Quick-PDF: Using Data Directory` )
   }
 }
 
@@ -186,17 +125,6 @@ const isBrowserInstalled = async ( browser: "firefox" | "chrome" ) => {
     return false
   }
 }
-
-/// Function to launch the browser
-let launching: Promise<{
-  browser: Browser
-  type: "firefox" | "chrome"
-}> | null = null
-const RESOURCE_LIMIT = 100 // Maximum allowed resources
-let resourceCount = 0
-
-let firefoxPagePool: Page [ ] = [ ]
-let chromePagePool: Page [ ] = [ ]
 
 async function launchPages ( browser: Browser | null, type: "chrome" | "firefox" ) {
   let pool = type === "chrome" ? chromePagePool : firefoxPagePool
@@ -301,8 +229,6 @@ export async function restorePage ( type: "chrome" | "firefox", page: Page ) {
   }
 }
 
-let cleanupRunning = false
-
 async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: string ): Promise<{
   browser: Browser
   type: "chrome" | "firefox"
@@ -323,13 +249,13 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
     } else if ( isBrowserValid ( chrome ) ) {
       return { browser: chrome!, type: "chrome" }
     } else {
-      const [ firefox, chrome ] = await Promise.all ( [
-        launchBrowser ( "firefox", wsURL ).catch ( ( ) => null ),
-        launchBrowser ( "chrome", wsURL ).catch ( ( ) => null )
-      ] )
+      // Try launching Firefox first, Chrome to be revoked at a later time
+      const firefox = await launchBrowser ( "firefox", wsURL ).catch ( ( ) => null )
       if ( firefox ) {
         return firefox
-      } else if ( chrome ) {
+      }
+      const chrome = await launchBrowser ( "chrome", wsURL ).catch ( ( ) => null )
+      if ( chrome ) {
         return chrome
       }
       throw new Error ( "No browser launched yet" )
@@ -345,22 +271,6 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
     return {
       browser: chrome!,
       type: "chrome"
-    }
-  }
-
-  // Ensure cleanup only runs once at a time
-  if ( cleanupRunning ) {
-    // Wait for cleanup to finish by polling the flag
-    while ( cleanupRunning ) {
-      await new Promise ( resolve => setTimeout ( resolve, 100 ) )
-    }
-    // Skip cleanup since it already ran, continue with browser launch
-  } else {
-    cleanupRunning = true
-    try {
-      await cleanupPuppeteerBrowsers ( )
-    } finally {
-      cleanupRunning = false
     }
   }
 
@@ -384,10 +294,11 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
       } )
     } else {
       console.log ( `Launching local ${browserType.toUpperCase ( )} browser...` )
+      const userDataDir = join ( os.tmpdir ( ), `puppeteer-${Date.now ( )}-${process.pid}` )
       browser = await puppeteer.launch ( {
         browser: browserType,
         headless: "shell",
-        userDataDir: join ( process.cwd ( ), "browser-data" ),
+        userDataDir: useDataDir && devMode ? userDataDir : undefined,
         executablePath: BROWSER_PATHS [ browserType ] [ getOS ( ) ],
         args: [
           "--no-sandbox",
@@ -395,7 +306,33 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
           `--quickpdf-launch-id=${Date.now ()}`
         ]
       } )
+      if ( devMode ) {
+        console.log ( `${browserType.toUpperCase ( )} launched with PID: ${browser.process ( )?.pid}` )
+      }
+      if ( useDataDir && devMode ) {
+        console.log ( `Puppeteer profile directory for debugging: ${userDataDir}` )
+      }
     }
+
+    // Record new browser pid in registry
+    let registry: Record<string, { pid: number; ownerPid: number; started: number }> = { }
+    try {
+      const data = await readFile ( registryPath, "utf8" )
+      registry = JSON.parse ( data )
+    } catch {
+      // Ignore errors and start with an empty registry
+    }
+
+    const pid = browser.process ( )?.pid
+    if ( pid ) {
+      registry [ pid ] = {
+        pid: pid,
+        ownerPid: process.pid,
+        started: Date.now ( )
+      }
+    }
+
+    await writeFile ( registryPath, JSON.stringify ( registry ) )
 
     await launchPages ( browser, browserType )
 
@@ -408,7 +345,7 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
       } )
       chrome.on ( "disconnected", ( ) => {
         chrome = null
-        console.warn ( "Browser disconnected unexpectedly" )
+        console.warn ( "Browser disconnected" )
       } )
     } else {
       firefox = browser
@@ -417,7 +354,7 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
       } )
       firefox.on ( "disconnected", ( ) => {
         firefox = null
-        console.warn ( "Browser disconnected unexpectedly" )
+        console.warn ( "Browser disconnected" )
       } )
     }
 
