@@ -2,6 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.8.2 (2025-10-29)
 # 1.8.1 (2025-10-29)
 - Refactor cleanup of data directory. Only create if specifically asked for.
 - Destroy only old pids created by this run of quick-pdf.
