@@ -35,7 +35,6 @@ export default {
     nodeExternals ( ),
     typescript ( {
       rootDir: "src",
-      baseUrl: "./",
       declaration: true,
       declarationDir: "dist/types",
     } )
