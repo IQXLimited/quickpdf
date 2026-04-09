@@ -6,7 +6,7 @@ import { pathToFileURL } from "url"
 import { resolve } from "path"
 import { Page, ScreenshotOptions } from "puppeteer"
 import { writeFile, unlink } from "fs/promises"
-import { closeBrowser, getPage, launchBrowser, restorePage } from "../browsers"
+import { closeBrowser, getPage, launchBrowser, restorePage } from "../browsers.js"
 
 // Options type for customizing the image conversion process
 type Options = {

@@ -36,6 +36,7 @@
   "scripts": {
     "build": "npm ci --no-audit && rollup -c",
     "lint": "npx --yes eslint",
+    "tsc-verify": "tsc --noEmit",
     "test": "npm run build && npm run test:cjs && npm run test:esm && npm run test:firefox",
     "test:esm": "npm run build && node test/test-esm.mjs",
     "test:cjs": "npm run build && node test/test-cjs.cjs",
@@ -46,30 +47,29 @@
   },
   "engineStrict": true,
   "dependencies": {
-    "file-type": "^21.3.0",
-    "html-validate": "^10.6.0",
+    "file-type": "^22.0.1",
+    "html-validate": "^10.11.3",
     "image-size": "^2.0.2",
     "path2d-polyfill": "^3.2.1",
-    "pdfkit": "^0.17.2",
-    "puppeteer": "^24.35.0",
+    "pdfkit": "^0.18.0",
+    "puppeteer": "^24.40.0",
     "rollup-plugin-node-externals": "^8.1.2",
-    "semver": "^7.7.3"
+    "semver": "^7.7.4"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-commonjs": "^29.0.2",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-typescript": "^12.3.0",
-    "@stylistic/eslint-plugin": "^5.7.0",
-    "@types/node": "^25.0.9",
-    "@types/pdfkit": "^0.17.4",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "@types/node": "^25.5.2",
+    "@types/pdfkit": "^0.17.5",
     "@types/semver": "^7.7.1",
-    "eslint": "^9.39.2",
-    "rollup": "^4.55.3",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.53.1"
+    "rollup": "^4.60.1",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.1"
   },
   "volta": {
-    "node": "24.13.0"
+    "node": "24.14.1"
   }
 }

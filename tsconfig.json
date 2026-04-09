@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ES2022",
-    "moduleResolution": "Node",
+    "target": "es2025",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "typeRoots": [
       "node_modules/@types"
     ],
