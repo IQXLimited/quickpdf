@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.10.0 (2026-04-09)
+- Update Dependencies
+
 # 1.9.1 (2026-01-26)
 - Fix Typescript compile issue
 
