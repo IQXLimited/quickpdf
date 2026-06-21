@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.11.0 (2026-06-21)
+- Update Dependencies
+
 # 1.10.0 (2026-04-09)
 - Update Dependencies
 
