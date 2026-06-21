@@ -48,28 +48,28 @@
   "engineStrict": true,
   "dependencies": {
     "file-type": "^22.0.1",
-    "html-validate": "^10.11.3",
+    "html-validate": "^11.5.3",
     "image-size": "^2.0.2",
-    "path2d-polyfill": "^3.2.1",
-    "pdfkit": "^0.18.0",
-    "puppeteer": "^24.40.0",
-    "rollup-plugin-node-externals": "^8.1.2",
-    "semver": "^7.7.4"
+    "path2d-polyfill": "^3.2.2",
+    "pdfkit": "^0.19.1",
+    "puppeteer": "^25.1.0",
+    "rollup-plugin-node-externals": "^9.0.1",
+    "semver": "^7.8.5"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^29.0.2",
+    "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-typescript": "^12.3.0",
     "@stylistic/eslint-plugin": "^5.10.0",
-    "@types/node": "^25.5.2",
-    "@types/pdfkit": "^0.17.5",
+    "@types/node": "^26.0.0",
+    "@types/pdfkit": "^0.17.6",
     "@types/semver": "^7.7.1",
-    "rollup": "^4.60.1",
-    "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.1"
+    "rollup": "^4.62.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1"
   },
   "volta": {
-    "node": "24.14.1"
+    "node": "24.17.0"
   }
 }
