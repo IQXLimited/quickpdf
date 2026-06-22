@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.13.0
+- Fixed an edge case in `pdf2img` where the Document Outline could still appear in snapshots for PDFs processed by Firefox's internal viewer due to dynamic overlay styling (`#viewsManager`).
+
 # 1.12.0 (2026-06-22)
 - Fixed an issue in `pdf2img` where the "Document Outline" (sidebar) was sometimes visible in screenshots.
 - Fixed a potential race condition and security vulnerability in `pdf2img` where concurrent processes using buffers would overwrite the same `temp.pdf` file. Temporary files are now uniquely generated.

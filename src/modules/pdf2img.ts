@@ -108,10 +108,24 @@ export const pdf2img = async (
           app.pdfViewer.currentScaleValue = "page-actual"
         }
       }
+
+      // Inject CSS to forcefully hide sidebars and overlays across different PDF.js versions
+      const style = document.createElement ( "style" )
+      style.textContent = `
+        #sidebarContainer,
+        #viewsManager,
+        .sidebar,
+        .menuContainer {
+          display: none !important;
+        }
+      `
+      document.head.appendChild ( style )
+
+      // Also attempt direct DOM manipulation for good measure
       const sidebar = document.getElementById ( "sidebarContainer" )
-      if ( sidebar ) {
-        sidebar.style.display = "none"
-      }
+      if ( sidebar ) sidebar.style.display = "none"
+      const viewsManager = document.getElementById ( "viewsManager" )
+      if ( viewsManager ) viewsManager.style.display = "none"
     } )
 
     const imageBuffers = [ ]
