@@ -43,14 +43,15 @@ export const img2pdf = async (
   options: Options = {} // Optional settings for header, footer, and font size
 ) => {
   const { fileTypeFromBuffer } = await import ( "file-type" ) // Import to detect the file type from a buffer
-  return new Promise<Buffer> ( ( resolve, reject ) => {
-    getBuffer ( input ).then ( async ( buf ) => {
+  return new Promise<Buffer> ( async ( resolve, reject ) => {
+    try {
+      const buf = await getBuffer ( input )
       const type = await fileTypeFromBuffer ( buf ) // Detect the file type of the image
       if ( type?.mime !== "image/jpeg" && type?.mime !== "image/png" ) {
         throw new Error ( "Provided File is not a JPEG or a PNG." ) // Throw an error if the file is not a valid image type
       }
 
-      const pdfBuffers: any[] = [] // Array to store PDF buffers
+      const pdfBuffers: Buffer[] = [] // Array to store PDF buffers
       const imgSize = imageSize ( buf ) // Get image dimensions
       const landscape = imgSize.width && imgSize.height ? imgSize.width > imgSize.height : false // Determine if the image is landscape
 
@@ -65,7 +66,7 @@ export const img2pdf = async (
         }
       } )
 
-      doc.on ( "data", ( data ) => {
+      doc.on ( "data", ( data: Buffer ) => {
         pdfBuffers.push ( data ) // Collect PDF data as it's being generated
       } )
 
@@ -105,12 +106,12 @@ export const img2pdf = async (
       }
 
       doc.end () // Finalize the PDF generation
-    } ).catch ( ( e ) => {
+    } catch ( e ) {
       reject ( e ) // Reject if an error occurs during image processing
-    } ).finally ( async ( ) => {
+    } finally {
       if ( options.closeBrowser ) {
         await closeBrowser ( ) // Close the browser if specified in options
       }
-    } )
+    }
   } )
 }

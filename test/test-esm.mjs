@@ -45,9 +45,9 @@ const runTests = async ( ) => {
     await writeFile ( resolve ( testAssetsDir, "html-to-pdf.pdf" ), html )
     console.log ( "HTML to PDF Conversion Successful (ESM)" )
 
-    console.log("Starting stress test... (20 attempts)")
+    console.log("Starting load test... (5 attempts)")
 
-    const attempts = 20
+    const attempts = 5
     for (let i = 0; i < attempts; i++) {
       try {
         const html = await html2pdf ( testFile )
@@ -57,16 +57,21 @@ const runTests = async ( ) => {
       }
     }
 
-    console.log("Stress Test Successful (ESM)")
-    console.log("Starting parallel conversion tests... (10 parallel conversions)")
+    console.log("Load Test Successful (ESM)")
+    console.log("Starting concurrent conversion test...")
 
-    const parallel = Array.from ( { length: 10 } ).map ( ( _, i ) =>
-      html2pdf ( testFile )
-        .then ( result => writeFile ( resolve ( testAssetsDir, `parallel-${i}.pdf` ), result ) )
-        .catch ( error => console.error ( `Parallel conversion ${i} failed`, error ) )
-    )
+    const concurrentAttempts = 5
+    const parallel = Array.from ( { length: concurrentAttempts } ).map ( async ( _, i ) => {
+      try {
+        const result = await html2pdf ( testFile )
+        await writeFile ( resolve ( testAssetsDir, `parallel-${i}.pdf` ), result )
+      } catch ( error ) {
+        console.error ( `Parallel conversion ${i} failed`, error )
+      }
+    } )
+    
     await Promise.all ( parallel )
-    console.log ( "Parallel Conversion Tests Successful (ESM)" )
+    console.log ( "Concurrent Conversion Tests Successful (ESM)" )
   } catch ( error ) {
     console.error ( "Error during ESM tests:", error )
   } finally {

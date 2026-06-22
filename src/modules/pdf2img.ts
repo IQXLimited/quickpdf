@@ -4,6 +4,8 @@
 
 import { pathToFileURL } from "url"
 import { resolve } from "path"
+import { tmpdir } from "os"
+import { randomUUID } from "crypto"
 import { Page, ScreenshotOptions } from "puppeteer"
 import { writeFile, unlink } from "fs/promises"
 import { closeBrowser, getPage, launchBrowser, restorePage } from "../browsers.js"
@@ -62,7 +64,7 @@ export const pdf2img = async (
   let tempFile: boolean = false
 
   if ( Buffer.isBuffer ( input ) ) {
-    path = resolve ( process.cwd ( ), "temp.pdf" )
+    path = resolve ( tmpdir ( ), `temp-${randomUUID ()}.pdf` )
     address = pathToFileURL ( path ).toString ( )
     tempFile = true
     await writeFile ( path, input )
@@ -96,6 +98,22 @@ export const pdf2img = async (
 
     await page.waitForSelector ( "canvas", { timeout: 5000 } )
 
+    await page.evaluate ( ( ) => {
+      const app = ( window as any ).PDFViewerApplication
+      if ( app ) {
+        if ( app.pdfSidebar ) {
+          app.pdfSidebar.close ( )
+        }
+        if ( app.pdfViewer ) {
+          app.pdfViewer.currentScaleValue = "page-actual"
+        }
+      }
+      const sidebar = document.getElementById ( "sidebarContainer" )
+      if ( sidebar ) {
+        sidebar.style.display = "none"
+      }
+    } )
+
     const imageBuffers = [ ]
 
     const pageCount = await page.evaluate ( ( ) => {
@@ -113,20 +131,6 @@ export const pdf2img = async (
       return { }
     } )
 
-    // Dynamically calculate the size of the PDF content
-    const pdfPage = await page.evaluate ( ( ) => {
-      const canvas: any = document.querySelector ( "canvas" ) // Assuming the PDF is rendered on a canvas
-      const { width, height } = canvas.getBoundingClientRect ( )
-      return { width, height }
-    } )
-
-    // Set the viewport to match the size of the PDF content
-    await page.setViewport ( {
-      width: pdfPage.width,
-      height: pdfPage.height,
-      deviceScaleFactor: 1
-    } )
-
     if ( options.page ) {
       if ( options.page < 1 || options.page > pageCount ) {
         throw new Error ( `Page number ${options.page} is out of bounds. PDF has ${pageCount} pages.` )
@@ -138,29 +142,19 @@ export const pdf2img = async (
       }
     }
 
-    if ( tempFile ) {
-      await unlink ( path )
-    }
-
-    await restorePage ( "firefox", page )
-
     // Return the rendered pages and metadata
     return {
       length: pageCount, // Total number of pages in the PDF
-      metadata: metadata.info, // PDF metadata
+      metadata: ( metadata as any ).info ?? metadata, // PDF metadata
       pages: imageBuffers // Array of rendered page buffers
     }
-  } catch ( error ) {
-    if ( tempFile ) {
-      await unlink ( path )
-    }
-
-    await restorePage ( "firefox", page )
-
-    throw error
   } finally {
+    if ( tempFile ) {
+      await unlink ( path ).catch ( ( ) => { } )
+    }
+    await restorePage ( "firefox", page ).catch ( ( ) => { } )
     if ( options.closeBrowser ) {
-      await closeBrowser ( ) // Close the browser if specified in options
+      await closeBrowser ( ).catch ( ( ) => { } ) // Close the browser if specified in options
     }
   }
 }
@@ -190,6 +184,12 @@ const renderPage = async ( page: Page, pageNumber: number, options: Options ): P
     return { x, y, width, height }
   }, pageNumber )
 
+  await page.setViewport ( {
+    width: Math.max ( 1, Math.ceil ( pageBoundingBox.width ) ),
+    height: Math.max ( 1, Math.ceil ( pageBoundingBox.height ) ),
+    deviceScaleFactor: options.quality ?? 1
+  } )
+
   const screenshotOptions: ScreenshotOptions = {
     fullPage: false, // Capture only the viewport
     type: options.type ?? "png", // Set the image format
@@ -202,7 +202,7 @@ const renderPage = async ( page: Page, pageNumber: number, options: Options ): P
   }
 
   if ( options.type && options.type !== "png" ) {
-    screenshotOptions.quality = options.quality ?? 100
+    screenshotOptions.quality = 100
   }
 
   try {

@@ -19,21 +19,20 @@ export async function getBuffer ( input: string | URL | Buffer ): Promise<Buffer
     return input
   }
 
-  return fetch ( input.toString ( ) )
-    .then ( res => {
-      if ( res.ok ) {
-        return res.arrayBuffer ( )
-      } else {
-        throw new Error ( "Failed to Fetch the File" )
-      }
-    } )
-    .then ( array => Buffer.from ( array ) )
-    .catch ( ( ) => {
-      if ( existsSync ( input.toString ( ) ) ) {
-        return readFileSync ( input.toString ( ) )
-      }
+  try {
+    const res = await fetch ( input.toString ( ) )
+    if ( res.ok ) {
+      const array = await res.arrayBuffer ( )
+      return Buffer.from ( array )
+    } else {
       throw new Error ( "Failed to Fetch the File" )
-    } )
+    }
+  } catch {
+    if ( existsSync ( input.toString ( ) ) ) {
+      return readFileSync ( input.toString ( ) )
+    }
+    throw new Error ( "Failed to Fetch the File" )
+  }
 }
 
 /**

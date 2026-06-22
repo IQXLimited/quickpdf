@@ -1,6 +1,6 @@
 import { access, readFile, writeFile } from "fs/promises"
 import { join } from "path"
-import puppeteer, { Browser, Page } from "puppeteer"
+import puppeteer, { Browser, Page, HTTPRequest } from "puppeteer"
 import os from "os"
 
 let firefox: Browser | null = null
@@ -102,7 +102,9 @@ export const cleanupOrphanedBrowsers = async ( ) => {
 
       // Remove from registry
       delete registry [ launchId ]
-      console.log ( `🧹 Cleaned up orphaned browser PID ${pid} (launchId: ${launchId})` )
+      if ( devMode ) {
+        console.log ( `Cleaned up orphaned browser PID ${pid} (launchId: ${launchId})` )
+      }
     }
   }
 
@@ -130,7 +132,7 @@ export const setDevMode = ( mode: boolean ) => {
 
 export const setDataDir = ( mode: boolean ) => {
   useDataDir = mode
-  if ( useDataDir ) {
+  if ( useDataDir && devMode ) {
     console.log ( `Quick-PDF: Using Data Directory` )
   }
 }
@@ -190,7 +192,7 @@ async function createPage ( browser: Browser | null ): Promise<Page> {
     await page.setRequestInterception ( true )
     await page.setDefaultNavigationTimeout ( 10000 ) // 10 seconds
     await page.goto ( "about:blank" ) // Load a blank page
-    page.on ( "request", ( request: any ) => {
+    page.on ( "request", ( request: HTTPRequest ) => {
       resourceCount++
       if ( resourceCount > RESOURCE_LIMIT ) {
         page.reload ( ) // Reload the page when limit is exceeded
@@ -200,10 +202,10 @@ async function createPage ( browser: Browser | null ): Promise<Page> {
       }
     } )
     page.on ( "error", err => {
-      console.error ( "Page error:", err )
+      if ( devMode ) console.error ( "Page error:", err )
     } )
     page.on ( "pageerror", err => {
-      console.error ( "Page error:", err )
+      if ( devMode ) console.error ( "Page error:", err )
     } )
     return page
   } catch ( err ) {
@@ -271,14 +273,14 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
       return { browser: chrome!, type: "chrome" }
     } else {
       // Try launching Firefox first, Chrome to be revoked at a later time
-      const firefox = await launchBrowser ( "firefox", wsURL ).catch ( ( ) => null )
-      if ( firefox ) {
-        return firefox
-      }
-      const chrome = await launchBrowser ( "chrome", wsURL ).catch ( ( ) => null )
-      if ( chrome ) {
-        return chrome
-      }
+      try {
+        const firefoxInst = await launchBrowser ( "firefox", wsURL )
+        return firefoxInst
+      } catch {}
+      try {
+        const chromeInst = await launchBrowser ( "chrome", wsURL )
+        return chromeInst
+      } catch {}
       throw new Error ( "No browser launched yet" )
     }
   }
@@ -308,13 +310,13 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
     isRemoteBrowser = !!wsURL
     let browser: Browser
     if ( wsURL ) {
-      console.log ( `Launching remote ${browserType.toUpperCase ( )} browser...` )
+      if ( devMode ) console.log ( `Launching remote ${browserType.toUpperCase ( )} browser...` )
       browser = await puppeteer.connect ( {
         browserWSEndpoint: wsURL,
         acceptInsecureCerts: true
       } )
     } else {
-      console.log ( `Launching local ${browserType.toUpperCase ( )} browser...` )
+      if ( devMode ) console.log ( `Launching local ${browserType.toUpperCase ( )} browser...` )
       const userDataDir = join ( os.tmpdir ( ), `puppeteer-${Date.now ( )}-${process.pid}` )
       browser = await puppeteer.launch ( {
         browser: browserType,
@@ -357,25 +359,25 @@ async function launchBrowser ( browserType?: "firefox" | "chrome", wsURL?: strin
 
     await launchPages ( browser, browserType )
 
-    console.log ( `${browserType.toUpperCase ( )} browser is ready for usage.` )
+    if ( devMode ) console.log ( `${browserType.toUpperCase ( )} browser is ready for usage.` )
 
     if ( browserType === "chrome" ) {
       chrome = browser
       chrome.on ( "targetdestroyed", target => {
-        console.log ( `Target destroyed: ${target.url ()}` )
+        if ( devMode ) console.log ( `Target destroyed: ${target.url ()}` )
       } )
       chrome.on ( "disconnected", ( ) => {
         chrome = null
-        console.warn ( "Browser disconnected" )
+        if ( devMode ) console.warn ( "Browser disconnected" )
       } )
     } else {
       firefox = browser
       firefox.on ( "targetdestroyed", target => {
-        console.log ( `Target destroyed: ${target.url ()}` )
+        if ( devMode ) console.log ( `Target destroyed: ${target.url ()}` )
       } )
       firefox.on ( "disconnected", ( ) => {
         firefox = null
-        console.warn ( "Browser disconnected" )
+        if ( devMode ) console.warn ( "Browser disconnected" )
       } )
     }
 
@@ -407,11 +409,11 @@ async function closeBrowser ( ): Promise<void> {
         await firefox.close ( )
       }
     }
-    console.log ( "Browser closed successfully." )
+    if ( devMode ) console.log ( "Browser closed successfully." )
     chrome = null
     firefox = null
   } catch ( err ) {
-    console.error ( "Error closing browsers in @iqx-limited/quick-form:", err )
+    if ( devMode ) console.error ( "Error closing browsers in @iqx-limited/quick-form:", err )
   }
 }
 

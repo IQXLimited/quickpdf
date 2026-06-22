@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.12.0 (2026-06-22)
+- Fixed an issue in `pdf2img` where the "Document Outline" (sidebar) was sometimes visible in screenshots.
+- Fixed a potential race condition and security vulnerability in `pdf2img` where concurrent processes using buffers would overwrite the same `temp.pdf` file. Temporary files are now uniquely generated.
+- Improved viewport calculation in `pdf2img` to resize dynamically for each page based on its dimensions, ensuring more accurate rendering for PDFs with varying page sizes.
+- Fixed `deviceScaleFactor` issue in `pdf2img` where the `quality` parameter was incorrectly used for screenshot compression instead of resolution scaling.
+
 # 1.11.0 (2026-06-21)
 - Update Dependencies
 
