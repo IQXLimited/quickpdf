@@ -185,8 +185,8 @@ export const pdf2img = async (
   } finally {
     if ( tempFile ) {
       await unlink ( path ).catch ( ( ) => {
-      console.error ( "QuickPDF: Failed to delete temporary file" )
-    } )
+        console.error ( "QuickPDF: Failed to delete temporary file" )
+      } )
     }
     await restorePage ( "firefox", page ).catch ( ( ) => {
       console.error ( "QuickPDF: Failed to restore page" )
