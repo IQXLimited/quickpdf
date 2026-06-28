@@ -85,7 +85,9 @@ export const html2pdf = async (
         const url = request.url ( )
         // Allow local data URIs (base64 inline assets) and the base about:blank page
         if ( url.startsWith ( "data:" ) || url === "about:blank" ) {
-          request.continue ( )
+          request.continue ( ).catch ( ( ) => {
+            console.error ( `Failed to continue request: ${url}` )
+          } )
           return
         }
 
@@ -109,11 +111,11 @@ export const html2pdf = async (
         }
 
         if ( !isSafeType || !isSsrfSafe ( url ) ) {
-          request.abort ( "accessdenied" )
+          request.abort ( "accessdenied" ).catch ( () => {} )
           return
         }
 
-        request.continue ( )
+        request.continue ().catch ( () => {} )
       } )
 
       // Inject a Content Security Policy (CSP) to strictly prevent JS fetch() execution
@@ -168,3 +170,4 @@ export const html2pdf = async (
     }
   }
 }
+

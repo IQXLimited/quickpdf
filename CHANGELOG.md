@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.14.1
+- **Bug Fix:** Removed dangerous process.exit(1) calls inside the request interception catch blocks. This resolves an unhandled Promise Rejection (ProtocolError: no such request) that could crash the parent application when Chrome abruptly closes intercepted requests during SSRF mitigation.
+
 # 1.14.0
 - **Security:** Added strict Server-Side Request Forgery (SSRF) protections.
   - Implemented an `isSsrfSafe` utility that rigorously blocks private networks (RFC1918), loopback, link-local addresses, and `file://` protocols across the package.

@@ -88,9 +88,13 @@ export const pdf2img = async (
 
       // Allow ONLY the specific PDF file path, blob URLs (used by PDF.js internal workers), data URIs, and about:blank
       if ( url === address || url.startsWith ( "blob:" ) || url.startsWith ( "data:" ) || url === "about:blank" ) {
-        request.continue ( )
+        request.continue ( ).catch ( ( ) => {
+          console.error ( `Failed to continue request: ${url}` )
+        } )
       } else {
-        request.abort ( "accessdenied" )
+        request.abort ( "accessdenied" ).catch ( ( ) => {
+          console.error ( `Unauthorized request blocked: ${url}` )
+        } )
       }
     } )
 
@@ -242,3 +246,4 @@ const renderPage = async ( page: Page, pageNumber: number, options: Options ): P
     throw new Error ( `Failed to render page ${pageNumber} of the PDF` )
   }
 }
+
