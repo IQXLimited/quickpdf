@@ -79,6 +79,21 @@ export const pdf2img = async (
   }
 
   try {
+    page.removeAllListeners ( "request" )
+    await page.setRequestInterception ( true )
+
+    page.on ( "request", ( request ) => {
+      if ( request.isInterceptResolutionHandled ( ) ) return
+      const url = request.url ( )
+
+      // Allow ONLY the specific PDF file path, blob URLs (used by PDF.js internal workers), data URIs, and about:blank
+      if ( url === address || url.startsWith ( "blob:" ) || url.startsWith ( "data:" ) || url === "about:blank" ) {
+        request.continue ( )
+      } else {
+        request.abort ( "accessdenied" )
+      }
+    } )
+
     await page.goto ( address )
 
     if ( options.password ) {

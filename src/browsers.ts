@@ -245,6 +245,22 @@ export async function restorePage ( type: "chrome" | "firefox", page: Page ) {
     height: 600,
     deviceScaleFactor: 1
   } )
+
+  // Clean up any module-specific SSRF interceptors to prevent state leakage
+  page.removeAllListeners ( "request" )
+
+  // Restore the default resource limit logic for idle pages
+  page.on ( "request", ( request: HTTPRequest ) => {
+    if ( request.isInterceptResolutionHandled ( ) ) return
+    resourceCount++
+    if ( resourceCount > RESOURCE_LIMIT ) {
+      page.reload ( ).catch ( ( ) => { } ) // Reload the page when limit is exceeded
+      resourceCount = 0 // Reset the counter
+    } else {
+      request.continue ( ).catch ( ( ) => { } )
+    }
+  } )
+
   if ( type === "chrome" ) {
     chromePagePool.push ( page )
   } else if ( type === "firefox" ) {

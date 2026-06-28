@@ -69,7 +69,7 @@ const runTests = async ( ) => {
         console.error ( `Parallel conversion ${i} failed`, error )
       }
     } )
-    
+
     await Promise.all ( parallel )
     console.log ( "Concurrent Conversion Tests Successful (ESM)" )
   } catch ( error ) {

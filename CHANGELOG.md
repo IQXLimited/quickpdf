@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+# 1.14.0
+- **Security:** Added strict Server-Side Request Forgery (SSRF) protections.
+  - Implemented an `isSsrfSafe` utility that rigorously blocks private networks (RFC1918), loopback, link-local addresses, and `file://` protocols across the package.
+  - `html2pdf` now uses Request Interception to dynamically block unauthorized or private network requests during page generation, while explicitly preserving support for external images, fonts, and stylesheets (e.g. for Handlebars templates).
+  - `html2pdf` injects a strict Content-Security-Policy (CSP) inside the `<head>` of generated pages to neutralize injected `fetch()` and `iframe` payloads.
+  - `pdf2img` applies strict resource gating, restricting network access only to its specific temporary file paths and PDF.js internal workers, neutralizing any malicious payloads hidden in user-uploaded PDFs.
+
 # 1.13.0
 - Fixed an edge case in `pdf2img` where the Document Outline could still appear in snapshots for PDFs processed by Firefox's internal viewer due to dynamic overlay styling (`#viewsManager`).
 

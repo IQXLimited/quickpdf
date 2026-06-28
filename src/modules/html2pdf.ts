@@ -4,7 +4,11 @@
 
 import { existsSync } from "fs" // Import function to check if a file exists
 import { HtmlValidate } from "html-validate" // Import the HTML validation library
-import { fetchHtmlFromUrl, readHtmlFromFilePath } from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
+import {
+  fetchHtmlFromUrl,
+  readHtmlFromFilePath,
+  isSsrfSafe
+} from "../utilies.js" // Import custom utility functions to fetch HTML from URL or file path
 import type { Report } from "html-validate"
 import { closeBrowser, launchBrowser, getPage, restorePage } from "../browsers.js"
 
@@ -72,7 +76,54 @@ export const html2pdf = async (
   try {
     const res = validation ? await validator.validateString ( htmlContent ) : { valid: true }
     if ( res.valid ) {
-      await page.setContent ( htmlContent, { waitUntil: "load" } ) // Set HTML content on the page and wait for it to load
+      page.removeAllListeners ( "request" )
+      await page.setRequestInterception ( true )
+
+      page.on ( "request", ( request ) => {
+        if ( request.isInterceptResolutionHandled ( ) ) return
+
+        const url = request.url ( )
+        // Allow local data URIs (base64 inline assets) and the base about:blank page
+        if ( url.startsWith ( "data:" ) || url === "about:blank" ) {
+          request.continue ( )
+          return
+        }
+
+        // Only allow external safe URLs and safe resource types
+        // Block all local files, loopbacks, RFC1918, link-local, etc.
+        const safeTypes = [ "image", "stylesheet", "font", "document" ]
+        let isSafeType = true
+
+        try {
+          // In Firefox (BiDi), request.resourceType() might throw UnsupportedOperation
+          const type = request.resourceType ( )
+          if ( !safeTypes.includes ( type ) ) {
+            isSafeType = false
+          }
+        } catch {
+          // Fallback to checking URL extensions if resourceType() is unsupported
+          const lowerUrl = url.toLowerCase ()
+          if ( lowerUrl.includes ( ".js" ) || lowerUrl.includes ( ".json" ) ) {
+            isSafeType = false
+          }
+        }
+
+        if ( !isSafeType || !isSsrfSafe ( url ) ) {
+          request.abort ( "accessdenied" )
+          return
+        }
+
+        request.continue ( )
+      } )
+
+      // Inject a Content Security Policy (CSP) to strictly prevent JS fetch() execution
+      // eslint-disable-next-line max-len
+      const cspMeta =`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src * data:; style-src 'unsafe-inline' * data:; font-src * data:; script-src 'none';">`
+      const safeHtmlContent = htmlContent.includes ( "<head>" )
+        ? htmlContent.replace ( "<head>", `<head>\n${cspMeta}` )
+        : `${cspMeta}\n${htmlContent}`
+
+      await page.setContent ( safeHtmlContent, { waitUntil: "load" } ) // Set HTML content on the page and wait for it to load
       const pdf = await page.pdf ( {
         format: "A4",
         printBackground: true
