@@ -89,11 +89,12 @@ export const pdf2img = async (
       // Allow ONLY the specific PDF file path, blob URLs (used by PDF.js internal workers), data URIs, and about:blank
       if ( url === address || url.startsWith ( "blob:" ) || url.startsWith ( "data:" ) || url === "about:blank" ) {
         request.continue ( ).catch ( ( ) => {
-          console.error ( `Failed to continue request: ${url}` )
+          console.error ( `QuickPDF: Failed to continue request: ${url}` )
         } )
       } else {
+        console.error ( `QuickPDF: Unauthorized request blocked: ${url}` )
         request.abort ( "accessdenied" ).catch ( ( ) => {
-          console.error ( `Unauthorized request blocked: ${url}` )
+          console.error ( `QuickPDF: Failed to abort request: ${url}` )
         } )
       }
     } )
@@ -183,9 +184,13 @@ export const pdf2img = async (
     }
   } finally {
     if ( tempFile ) {
-      await unlink ( path ).catch ( ( ) => { } )
+      await unlink ( path ).catch ( ( ) => {
+      console.error ( "QuickPDF: Failed to delete temporary file" )
+    } )
     }
-    await restorePage ( "firefox", page ).catch ( ( ) => { } )
+    await restorePage ( "firefox", page ).catch ( ( ) => {
+      console.error ( "QuickPDF: Failed to restore page" )
+    } )
     if ( options.closeBrowser ) {
       await closeBrowser ( ).catch ( ( ) => { } ) // Close the browser if specified in options
     }

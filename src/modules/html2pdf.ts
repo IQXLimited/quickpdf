@@ -86,7 +86,7 @@ export const html2pdf = async (
         // Allow local data URIs (base64 inline assets) and the base about:blank page
         if ( url.startsWith ( "data:" ) || url === "about:blank" ) {
           request.continue ( ).catch ( ( ) => {
-            console.error ( `Failed to continue request: ${url}` )
+            console.error ( `QuickPDF: Failed to continue request: ${url}` )
           } )
           return
         }
@@ -111,11 +111,16 @@ export const html2pdf = async (
         }
 
         if ( !isSafeType || !isSsrfSafe ( url ) ) {
-          request.abort ( "accessdenied" ).catch ( () => {} )
+          console.error ( `QuickPDF: Unauthorized request blocked: ${url}` )
+          request.abort ( "accessdenied" ).catch ( () => {
+            console.error ( `QuickPDF: Failed to abort request: ${url}` )
+          } )
           return
         }
 
-        request.continue ().catch ( () => {} )
+        request.continue ().catch ( () => {
+          console.error ( `QuickPDF: Failed to continue request: ${url}` )
+        } )
       } )
 
       // Inject a Content Security Policy (CSP) to strictly prevent JS fetch() execution
