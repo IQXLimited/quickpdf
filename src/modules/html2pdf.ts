@@ -85,8 +85,11 @@ export const html2pdf = async (
         const url = request.url ( )
         // Allow local data URIs (base64 inline assets) and the base about:blank page
         if ( url.startsWith ( "data:" ) || url === "about:blank" ) {
-          request.continue ( ).catch ( ( ) => {
-            console.error ( `QuickPDF: Failed to continue request: ${url}` )
+          request.continue ( ).catch ( ( err: Error | any ) => {
+            const msg = err instanceof Error ? err.message : String ( err )
+            if ( !msg.includes ( "no such request" ) && !msg.includes ( "Request is already handled" ) && !msg.includes ( "Session closed" ) ) {
+              console.error ( `QuickPDF: Failed to continue request: ${url}`, err )
+            }
           } )
           return
         }
@@ -112,14 +115,20 @@ export const html2pdf = async (
 
         if ( !isSafeType || !isSsrfSafe ( url ) ) {
           console.error ( `QuickPDF: Unauthorized request blocked: ${url}` )
-          request.abort ( "accessdenied" ).catch ( () => {
-            console.error ( `QuickPDF: Failed to abort request: ${url}` )
+          request.abort ( "accessdenied" ).catch ( ( err: Error | any ) => {
+            const msg = err instanceof Error ? err.message : String ( err )
+            if ( !msg.includes ( "no such request" ) && !msg.includes ( "Request is already handled" ) && !msg.includes ( "Session closed" ) ) {
+              console.error ( `QuickPDF: Failed to abort request: ${url}`, err )
+            }
           } )
           return
         }
 
-        request.continue ().catch ( () => {
-          console.error ( `QuickPDF: Failed to continue request: ${url}` )
+        request.continue ().catch ( ( err: Error | any ) => {
+          const msg = err instanceof Error ? err.message : String ( err )
+          if ( !msg.includes ( "no such request" ) && !msg.includes ( "Request is already handled" ) && !msg.includes ( "Session closed" ) ) {
+            console.error ( `QuickPDF: Failed to continue request: ${url}`, err )
+          }
         } )
       } )
 
